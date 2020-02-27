@@ -57,4 +57,6 @@ private:
 	std::deque<T> __queue;
 };
 
+int get_utc_diff();
+
 } // namespace utility

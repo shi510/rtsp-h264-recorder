@@ -1,4 +1,5 @@
 #include "vr/recorder/tape.h"
+#include "vr/utility/handy.h"
 #include <filesystem>
 #include <sstream>
 #include <regex>
@@ -76,7 +77,7 @@ bool tape::aggregate_index(const std::string dir)
 				std::tm t{
 					.tm_sec = atoi(cm[7].str().c_str()),
 					.tm_min = atoi(cm[6].str().c_str()),
-					.tm_hour = atoi(cm[5].str().c_str()),
+					.tm_hour = atoi(cm[5].str().c_str()) + utility::get_utc_diff(),
 					.tm_mday = atoi(cm[4].str().c_str()),
 					.tm_mon = atoi(cm[3].str().c_str()) - 1,
 					.tm_year = atoi(cm[2].str().c_str()) - SYSTEM_BASE_YEAR
