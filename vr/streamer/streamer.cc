@@ -19,7 +19,6 @@ bool streamer::open(int port, int max_queue)
 {
 	struct sockaddr_in address;
 	int opt = 1;
-	int addrlen = sizeof(address);
 	if((_server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
 	{
 		perror("socket failed");
@@ -72,7 +71,6 @@ bool streamer::open(int port, int max_queue)
 	_sender = std::thread(
 		[this]()
 		{
-			int temp = 0;
 			while(true)
 			{
 				std::unique_lock<std::mutex> lock(_sbuf_mtx);
@@ -92,7 +90,7 @@ bool streamer::open(int port, int max_queue)
 					{
 						int sent = send(cli, data.data() + total,
 							size - total, 0);
-						if(send <= 0)
+						if(sent <= 0)
 						{
 							break;
 						}
