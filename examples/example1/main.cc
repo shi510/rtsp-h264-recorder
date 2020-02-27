@@ -1,7 +1,6 @@
 #include "writer.h"
 #include <vr/video/ffmpeg/rtsp_reader.h>
 #include <vr/streamer/streamer.h>
-#include <vr/utility/handy.h>
 #include <vr/recorder/tape.h>
 #include <iostream>
 #include <memory>
@@ -12,7 +11,6 @@
 
 int main(int argc, char* argv[])
 {
-	std::thread writer_thread;
 	auto tp = std::make_shared<vr::tape>();
 	auto wt = std::make_shared<writer>();
 	auto streamer = std::make_shared<vr::streamer>();

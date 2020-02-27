@@ -61,6 +61,10 @@ bool tape::aggregate_index(const std::string dir)
 	auto name_criterion = 
 		"^((\\d{4})-(\\d{2})-(\\d{2})@(\\d{2})-(\\d{2})-(\\d{2}))\\.index";
 	std::regex re(name_criterion);
+	if(!std::filesystem::exists(dir))
+	{
+		std::filesystem::create_directories(dir);
+	}
 	for(auto& p: std::filesystem::recursive_directory_iterator(dir))
 	{
 		if(!p.is_directory())

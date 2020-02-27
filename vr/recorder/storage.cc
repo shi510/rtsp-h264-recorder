@@ -1,5 +1,6 @@
 #include "vr/recorder/storage.h"
 #include "vr/utility/handy.h"
+#include <filesystem>
 
 namespace vr
 {
@@ -115,9 +116,12 @@ bool storage::write(std::vector<std::vector<uint8_t> > data, std::time_t at)
 		std::unique_lock<std::mutex> lock(dmtx);
 		if(!dfile.is_open())
 		{
+			std::string dfile_name = fname + ".data";
 			std::ios::openmode mode = std::ios::in | std::ios::out;
 			mode |= std::ios::binary | std::ios::app;
-			dfile.open(fname + ".data", mode);
+			std::filesystem::create_directories(
+				std::filesystem::path(dfile_name).parent_path());
+			dfile.open(dfile_name, mode);
 			if(!dfile.is_open())
 			{
 				return false;
@@ -145,9 +149,12 @@ bool storage::write(std::vector<std::vector<uint8_t> > data, std::time_t at)
 		_IdxKey idx_key = make_index_key(at);
 		if(!ifile.is_open())
 		{
+			std::string ifile_name = fname + ".index";
 			std::ios::openmode mode = std::ios::in | std::ios::out;
 			mode |= std::ios::binary | std::ios::app;
-			ifile.open(fname + ".index", mode);
+			std::filesystem::create_directories(
+				std::filesystem::path(ifile_name).parent_path());
+			ifile.open(ifile_name, mode);
 			if(!ifile.is_open())
 			{
 				return false;
