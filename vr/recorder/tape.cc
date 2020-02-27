@@ -7,11 +7,24 @@
 
 namespace vr
 {
+tape::~tape()
+{
+	close();
+}
+
 bool tape::open(const std::string dir)
 {
 	_root = dir;
 	aggregate_index(_root);
 	return true;
+}
+
+void tape::close()
+{
+	for(auto it : strgs)
+	{
+		it.second->close();
+	}
 }
 
 bool tape::write(std::vector<std::vector<uint8_t>> gop, std::time_t at)

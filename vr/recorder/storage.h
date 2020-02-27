@@ -48,6 +48,10 @@ public:
 
 	storage(std::string file_name);
 
+	~storage();
+
+	void close();
+
 	bool read_index_file(std::string file);
 
 	bool write(std::vector<std::vector<uint8_t> > data, std::time_t at);

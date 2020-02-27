@@ -33,7 +33,11 @@ class tape
 public:
 	class iterator;
 
+	~tape();
+
 	bool open(const std::string dir);
+
+	void close();
 
 	bool write(std::vector<std::vector<uint8_t>> gop, std::time_t at);
 

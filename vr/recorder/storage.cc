@@ -4,6 +4,29 @@
 namespace vr
 {
 
+storage::~storage()
+{
+	close();
+}
+
+void storage::close()
+{
+	{
+		std::unique_lock<std::mutex> lock(dmtx);
+		if(dfile.is_open())
+		{
+			dfile.close();
+		}
+	}
+	{
+		std::unique_lock<std::mutex> lock(imtx);
+		if(ifile.is_open())
+		{
+			ifile.close();
+		}
+	}
+}
+
 storage::iterator storage::find(std::time_t at)
 {
 	iterator it;
