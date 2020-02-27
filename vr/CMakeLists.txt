@@ -6,9 +6,11 @@ file(GLOB_RECURSE files "*.*")
 group_files("${files}")
 
 add_subdirectory(recorder)
-add_subdirectory(streamer)
 add_subdirectory(utility)
-add_subdirectory(video)
+if(BUILD_EXAMPLE)
+	add_subdirectory(streamer)
+	add_subdirectory(video)
+endif()
 
 include_directories(${vr_include_dirs})
 add_library(${the_library} ${LIB_TYPE} ${vr_source_files} ${vr_header_files})
