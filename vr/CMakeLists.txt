@@ -12,6 +12,14 @@ add_subdirectory(video)
 
 include_directories(${vr_include_dirs})
 add_library(${the_library} ${LIB_TYPE} ${vr_source_files} ${vr_header_files})
-target_link_libraries(${the_library} ${vr_lib_deps} stdc++fs pthread)
+if(UNIX AND NOT APPLE)
+	# Unix but not apple specific library.
+	target_link_libraries(${the_library} ${vr_lib_deps} stdc++fs pthread)
+elseif(APPLE)
+	# apple specific library.
+	target_link_libraries(${the_library} ${vr_lib_deps} pthread)
+else()
+	message("No support platform.")
+endif()
 
 set_target_properties(${the_library} PROPERTIES FOLDER "vr_library")
