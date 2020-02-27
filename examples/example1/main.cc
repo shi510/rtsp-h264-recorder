@@ -16,6 +16,7 @@ int main(int argc, char* argv[])
 	auto tp = std::make_shared<vr::tape>();
 	auto wt = std::make_shared<writer>();
 	auto streamer = std::make_shared<vr::streamer>();
+	auto rtsp = std::make_shared<vr::rtsp_reader>();
 	if(argc < 3)
 	{
 		std::cout<<argv[0]<<" ";
@@ -24,20 +25,24 @@ int main(int argc, char* argv[])
 		std::cout<<std::endl;
 		return 1;
 	}
-	std::shared_ptr<vr::cam_reader> rtsp;
-	rtsp = std::make_shared<vr::rtsp_reader>();
 	if(!rtsp->connect(argv[1]))
 	{
 		std::cout<<"Fail to connect :";
 		std::cout<<argv[1];
 		std::cout<<std::endl;
-		return 2;
+		return 1;
 	}
 	
-	streamer->open(std::atoi(argv[2]));
+	if(!streamer->open(std::atoi(argv[2])))
+	{
+		std::cout<<"tape can not open."<<std::endl;
+		streamer->close();
+		return 1;
+	}
 	if(!tp->open(argv[3]))
 	{
 		std::cout<<"tape can not open."<<std::endl;
+		tp->close();
 		return 1;
 	}
 	wt->set_tape(tp);
@@ -45,9 +50,9 @@ int main(int argc, char* argv[])
 	if(!wt->start())
 	{
 		std::cout<<"writer can not start."<<std::endl;
+		wt->close();
 		return 1;
 	}
-	
 	auto past_criterion = "^start:(\\d{4})-(\\d{2})-(\\d{2})@(\\d{2})-(\\d{2})-(\\d{2})";
 	std::regex re_past(past_criterion);
 	std::thread view_thread;
@@ -80,7 +85,6 @@ int main(int argc, char* argv[])
 				[&tp, &stop, &streamer, t]() mutable
 				{
 					using ms = std::chrono::duration<int, std::milli>;
-					int alt = 0;
 					auto tp_iter = tp->find(mktime(&t));
 					while(tp_iter != tp->end())
 					{
@@ -93,11 +97,8 @@ int main(int argc, char* argv[])
 						{
 							streamer->broadcast(data);
 						}
-						alt ^= 1;
-						if(alt)
-							std::this_thread::sleep_for(ms(33));
-						else
-							std::this_thread::sleep_for(ms(66));
+						// asssume 30 fps.
+						std::this_thread::sleep_for(ms(33));
 						++tp_iter;
 					}
 				}
