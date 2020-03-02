@@ -129,6 +129,19 @@ std::shared_ptr<storage> tape::find_storage(
 	{
 		auto strg = std::make_shared<storage>(make_file_name(time));
 		strgs[strg_key] = strg;
+		auto oldest_strg_it = strgs.begin();
+		if((strg_key - oldest_strg_it->first) >= __opt.max_days)
+		{
+			if(!oldest_strg_it->second->remove())
+			{
+				std::cerr<<"Fail to remove the oldest storage: ";
+				std::cerr<<oldest_strg_it->second->name()<<std::endl;
+			}
+			else
+			{
+				strgs.erase(oldest_strg_it);
+			}
+		}
 		return strg;
 	}
 	return nullptr;

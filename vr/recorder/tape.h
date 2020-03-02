@@ -19,6 +19,9 @@ class tape
 public:
 	struct option
 	{
+		// keep storages upto max_days.
+		int max_days = 90;
+		// remove all previous storages.
 		bool remove_previous = false;
 	};
 

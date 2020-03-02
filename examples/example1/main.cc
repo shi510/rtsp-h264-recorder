@@ -38,6 +38,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	vr::tape::option opt;
+	opt.max_days = 90;
 	if(!tp->open(argv[3], opt))
 	{
 		std::cout<<"tape can not open."<<std::endl;
