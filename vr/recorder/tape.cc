@@ -130,7 +130,8 @@ std::shared_ptr<storage> tape::find_storage(
 		auto strg = std::make_shared<storage>(make_file_name(time));
 		strgs[strg_key] = strg;
 		auto oldest_strg_it = strgs.begin();
-		if((strg_key - oldest_strg_it->first) >= __opt.max_days)
+		auto day_diff = strg_key / 100 - oldest_strg_it->first / 100;
+		if(day_diff >= __opt.max_days)
 		{
 			if(!oldest_strg_it->second->remove())
 			{
