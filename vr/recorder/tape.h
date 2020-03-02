@@ -15,27 +15,18 @@ class tape
 
 	static constexpr int SYSTEM_BASE_YEAR = 1900;
 	static constexpr int BASE_YEAR = 2020;
-	/*
-	* Key of the map is 
-		a value concatenated with year-yday-hour.
-	* It has upto 9 position. Year(4), YearDays(3), Hour(2).
-	* Note that 0 year is 2020 year, i.e. 1 year is 2021 year.
-	* See above BASE_YEAR.
-	* Also note that the range of days is 0~365.
-	* Value(storage) of the map is storage structure.
-	* See above storage struct.
-	*/
-	std::map<_StrgKey, std::shared_ptr<storage>> strgs;
-
-	// folder path of this tape.
-	std::string _root;
 
 public:
+	struct option
+	{
+		bool remove_previous = false;
+	};
+
 	class iterator;
 
 	~tape();
 
-	bool open(const std::string dir);
+	bool open(const std::string dir, option opt);
 
 	void close();
 
@@ -54,6 +45,26 @@ private:
 	_StrgKey make_storage_key(const std::time_t time) const;
 
 	std::string make_file_name(const std::time_t time) const;
+
+	bool remove_all_files();
+
+private:
+	/*
+	* Key of the map is 
+		a value concatenated with year-yday-hour.
+	* It has upto 9 position. Year(4), YearDays(3), Hour(2).
+	* Note that 0 year is 2020 year, i.e. 1 year is 2021 year.
+	* See above BASE_YEAR.
+	* Also note that the range of days is 0~365.
+	* Value(storage) of the map is storage class.
+	* See storage.h.
+	*/
+	std::map<_StrgKey, std::shared_ptr<storage>> strgs;
+
+	option __opt;
+
+	// folder path of this tape.
+	std::string _root;
 };
 
 class tape::iterator

@@ -1,6 +1,7 @@
 #include "vr/recorder/storage.h"
 #include "vr/utility/handy.h"
 #include <filesystem>
+#include <iostream>
 
 namespace vr
 {
@@ -26,6 +27,32 @@ void storage::close()
 			ifile.close();
 		}
 	}
+	idxes.clear();
+}
+
+bool storage::remove()
+{
+	close();
+	{
+		if(!std::filesystem::remove(fname + ".data"))
+		{
+			std::cerr<<"Fail to remove "<<fname + ".data"<<std::endl;
+			return false;
+		}
+	}
+	{
+		if(!std::filesystem::remove(fname + ".index"))
+		{
+			std::cerr<<"Fail to remove "<<fname + ".index"<<std::endl;
+			return false;
+		}
+	}
+	return true;
+}
+
+std::string storage::name() const
+{
+	return fname;
 }
 
 storage::iterator storage::find(std::time_t at)

@@ -37,7 +37,8 @@ int main(int argc, char* argv[])
 		streamer->close();
 		return 1;
 	}
-	if(!tp->open(argv[3]))
+	vr::tape::option opt;
+	if(!tp->open(argv[3], opt))
 	{
 		std::cout<<"tape can not open."<<std::endl;
 		tp->close();
@@ -84,6 +85,10 @@ int main(int argc, char* argv[])
 				{
 					using ms = std::chrono::duration<int, std::milli>;
 					auto tp_iter = tp->find(mktime(&t));
+					if(tp_iter == tp->end())
+					{
+						std::cout<<"tape not found."<<std::endl;
+					}
 					while(tp_iter != tp->end())
 					{
 						if(stop)

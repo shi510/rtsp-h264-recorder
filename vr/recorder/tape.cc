@@ -8,15 +8,24 @@
 
 namespace vr
 {
+
 tape::~tape()
 {
 	close();
 }
 
-bool tape::open(const std::string dir)
+bool tape::open(const std::string dir, option opt)
 {
 	_root = dir;
-	aggregate_index(_root);
+	__opt = opt;
+	if(!aggregate_index(_root))
+	{
+		return false;
+	}
+	if(__opt.remove_previous)
+	{
+		return remove_all_files();
+	}
 	return true;
 }
 
@@ -64,7 +73,11 @@ bool tape::aggregate_index(const std::string dir)
 	std::regex re(name_criterion);
 	if(!std::filesystem::exists(dir))
 	{
-		std::filesystem::create_directories(dir);
+		if(!std::filesystem::create_directories(dir))
+		{
+			std::cerr<<"Failed to create directory: "<<dir<<std::endl;
+			return false;
+		}
 	}
 	for(auto& p: std::filesystem::recursive_directory_iterator(dir))
 	{
@@ -85,7 +98,8 @@ bool tape::aggregate_index(const std::string dir)
 				auto strg = find_storage(mktime(&t), true);
 				if(!strg->read_index_file(p.path().string()))
 				{
-					std::cout<<"Fail to read: "<<p.path().string()<<std::endl;
+					std::cerr<<"Fail to read: "<<p.path().string()<<std::endl;
+					return false;
 				}
 			}
 		}
@@ -134,6 +148,20 @@ std::string tape::make_file_name(const std::time_t time) const
 	return (p / ss.str()).string();
 }
 
+bool tape::remove_all_files()
+{
+	for(auto it : strgs)
+	{
+		if(!it.second->remove())
+		{
+			std::cerr<<"Fail to remove "<<it.second->name()<<std::endl;
+			return false;
+		}
+	}
+	strgs.clear();
+	return true;
+}
+
 std::vector<uint8_t> tape::iterator::operator*()
 {
 	auto data = std::move(__buf.front());
@@ -145,7 +173,6 @@ tape::iterator tape::iterator::operator++()
 {
 	if(__idx_iter == __strg->end())
 	{
-		std::cout<<"try new storage ... ";
 		__iter = std::next(__iter);
 		if(__iter != __iter_end)
 		{
