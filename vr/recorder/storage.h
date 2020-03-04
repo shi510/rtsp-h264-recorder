@@ -56,7 +56,7 @@ public:
 	
 	std::string name() const;
 
-	bool read_index_file(std::string file);
+	bool empty() const;
 
 	bool write(std::vector<std::vector<uint8_t> > data, std::time_t at);
 
@@ -68,6 +68,8 @@ public:
 
 private:
 	_IdxKey make_index_key(const std::time_t time) const;
+
+	bool read_index_file(std::string file);
 };
 
 class storage::reader

@@ -96,7 +96,7 @@ bool tape::aggregate_index(const std::string dir)
 					.tm_year = atoi(cm[2].str().c_str()) - SYSTEM_BASE_YEAR
 				};
 				auto strg = find_storage(mktime(&t), true);
-				if(!strg->read_index_file(p.path().string()))
+				if(strg->empty())
 				{
 					std::cerr<<"Fail to read: "<<p.path().string()<<std::endl;
 					return false;

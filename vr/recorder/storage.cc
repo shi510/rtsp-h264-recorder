@@ -55,6 +55,11 @@ std::string storage::name() const
 	return fname;
 }
 
+bool storage::empty() const
+{
+	return idxes.empty();
+}
+
 storage::iterator storage::find(std::time_t at)
 {
 	iterator it;
@@ -101,6 +106,10 @@ storage::iterator storage::end()
 storage::storage(std::string file_name)
 {
 	fname = file_name;
+	if(!read_index_file(fname + ".index"))
+	{
+		// can not open index file.
+	}
 }
 
 bool storage::read_index_file(std::string file)
