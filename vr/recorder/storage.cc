@@ -123,7 +123,7 @@ storage::iterator storage::end()
 storage::storage(std::string file_name)
 {
 	fname = file_name;
-	if(!read_index_file(fname + ".index"))
+	if(!read_index_file(fname))
 	{
 		// can not open index file.
 	}
@@ -132,7 +132,7 @@ storage::storage(std::string file_name)
 bool storage::read_index_file(std::string file)
 {
 	std::ios::openmode mode = std::ios::binary;
-	std::ifstream index_file(file, mode);
+	std::ifstream index_file(file + ".index", mode);
 	if(!index_file.is_open())
 		return false;
 	index_file.seekg(std::ios::beg);
@@ -149,7 +149,7 @@ bool storage::read_index_file(std::string file)
 		);
 		if(index_file.eof())
 			break;
-		_LocKey idx_key = make_index_key(ii.ts);
+		_LocKey idx_key = make_index_key(ii.ts / 1000);
 		if(idxes.find(idx_key) != idxes.end())
 		{
 			// std::cout<<"Warning: gop already exists at ";
@@ -204,7 +204,8 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 	// write group of picture to data file.
 	{
 		std::unique_lock<std::mutex> lock(imtx);
-		_IdxKey idx_key = make_index_key(at.count() / 1000);
+		_TsKey ts = at.count();
+		_IdxKey idx_key = make_index_key(ts / 1000);
 		update_timeline(at);
 		if(!ifile.is_open())
 		{
@@ -224,7 +225,7 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 			reinterpret_cast<char *>(&data_loc),
 			sizeof(_LocKey));
 		ifile.write(
-			reinterpret_cast<char *>(&at),
+			reinterpret_cast<char *>(&ts),
 			sizeof(_TsKey));
 		idxes[idx_key] = index_info{data_loc, at.count()};
 	}
