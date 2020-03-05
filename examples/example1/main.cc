@@ -96,17 +96,65 @@ int main(int argc, char* argv[])
 						{
 							break;
 						}
-						auto data = *tp_iter;
-						if(!data.empty())
+						auto fi = *tp_iter;
+						if(!fi.data.empty())
 						{
-							streamer->broadcast(data);
+							streamer->broadcast(fi.data);
 						}
 						// asssume 30 fps.
-						std::this_thread::sleep_for(ms(33));
+						std::this_thread::sleep_for(ms(66));
 						++tp_iter;
 					}
 				}
 			);
+		}
+		else if(cmd == "timeline")
+		{
+			auto tls = tp->timeline();
+			
+			for(auto tl : tls)
+			{
+				std::string to;
+				std::string from;
+				auto tt = time_t(tl.first / 1000);
+				auto ct = ctime(&tt);
+				auto len = strlen(ct);
+				from.resize(len);
+				std::copy(ct, ct + len, from.begin());
+				from.erase(from.end()-1);
+
+				tt = time_t(tl.second / 1000);
+				ct = ctime(&tt);
+				len = strlen(ct);
+				to.resize(len);
+				std::copy(ct, ct + len, to.begin());
+				to.erase(to.end()-1);
+				std::cout<<from<<":"<<to<<std::endl;
+			}
+		}
+		else if(cmd == "recent_timeline")
+		{
+			auto tl = tp->recent_timeline();
+			std::string to;
+			std::string from;
+			auto tt = time_t(tl.first / 1000);
+			auto ct = ctime(&tt);
+			auto len = strlen(ct);
+			from.resize(len);
+			std::copy(ct, ct + len, from.begin());
+			from.erase(from.end()-1);
+
+			tt = time_t(tl.second / 1000);
+			ct = ctime(&tt);
+			len = strlen(ct);
+			to.resize(len);
+			std::copy(ct, ct + len, to.begin());
+			to.erase(to.end()-1);
+			std::cout<<from<<":"<<to<<std::endl;
+		}
+		else if(cmd == "delay")
+		{
+			wt->set_delay(2);
 		}
 		else if(cmd == "stop")
 		{

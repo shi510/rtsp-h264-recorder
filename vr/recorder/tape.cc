@@ -37,10 +37,37 @@ void tape::close()
 	}
 }
 
-bool tape::write(std::vector<std::vector<uint8_t>> gop, std::time_t at)
+bool tape::write(std::vector<storage::frame_info> gop, milliseconds at)
 {
-	std::shared_ptr<storage> strg = find_storage(at, true);
+	auto sec = time_t(at.count() / 1000);
+	std::shared_ptr<storage> strg = find_storage(sec, true);
 	return strg->write(gop, at);
+}
+
+std::vector<std::pair<uint64_t, uint64_t>> tape::timeline()
+{
+	std::vector<std::pair<uint64_t, uint64_t>> tls;
+	for(auto it : strgs)
+	{
+		auto cur_tl = it.second->timeline();
+		for(auto tl : cur_tl)
+		{
+			tls.push_back(tl);
+		}
+	}
+	return merge_timeline(tls);
+	// return tls;
+}
+
+std::pair<uint64_t, uint64_t> tape::recent_timeline()
+{
+	std::pair<uint64_t, uint64_t> tl;
+	auto it = std::prev(strgs.end());
+	if(it == strgs.end())
+	{
+		// TODO: check this section.
+	}
+	return it->second->recent_timeline();
 }
 
 tape::iterator tape::find(std::time_t at)
@@ -105,6 +132,42 @@ bool tape::aggregate_index(const std::string dir)
 		}
 	}
 	return true;
+}
+
+std::vector<std::pair<uint64_t, uint64_t>> tape::merge_timeline(
+	const std::vector<std::pair<uint64_t, uint64_t>>& tls)
+{
+	std::vector<std::pair<uint64_t, uint64_t>> merged;
+	if(tls.empty())
+	{
+		return merged;
+	}
+	auto first_it = tls.begin();
+	auto next_it = std::next(first_it);
+	merged.push_back(*first_it);
+	// std::cout<<"try merge..."<<std::endl;
+	if(next_it == tls.end())
+	{
+		// std::cout<<"there is no time to merge."<<std::endl;
+		return merged;
+	}
+	while(next_it != tls.end())
+	{
+		auto pivot_it = std::prev(merged.end());
+		auto junction_diff = next_it->first - (pivot_it->second);
+		// std::cout<<"merge diff : "<<junction_diff<<std::endl;
+		if(junction_diff <= 1500)
+		{
+			pivot_it->second = next_it->second;
+			++next_it;
+		}
+		else
+		{
+			merged.push_back(*next_it);
+			++next_it;
+		}
+	}
+	return merged;
 }
 
 uint32_t tape::make_storage_key(const std::time_t time) const
@@ -176,7 +239,7 @@ bool tape::remove_all_files()
 	return true;
 }
 
-std::vector<uint8_t> tape::iterator::operator*()
+storage::frame_info tape::iterator::operator*()
 {
 	auto data = std::move(__buf.front());
 	__buf.pop();

@@ -55,6 +55,23 @@ std::string storage::name() const
 	return fname;
 }
 
+std::vector<std::pair<uint64_t, uint64_t>> storage::timeline() const
+{
+	std::vector<std::pair<uint64_t, uint64_t>> tl;
+
+	for(auto it : __timeline)
+	{
+		tl.push_back(std::make_pair(it.first, it.second));
+	}
+	return tl;
+}
+
+std::pair<uint64_t, uint64_t> storage::recent_timeline() const
+{
+	auto it = std::prev(__timeline.end());
+	return std::make_pair(it->first, it->second);
+}
+
 bool storage::empty() const
 {
 	return idxes.empty();
@@ -139,12 +156,13 @@ bool storage::read_index_file(std::string file)
 			// std::cout<<idx_key<<std::endl;
 		}
 		idxes[idx_key] = ii;
+		update_timeline(std::chrono::milliseconds(ii.ts));
 	}
 	index_file.close();
 	return true;
 }
 
-bool storage::write(std::vector<std::vector<uint8_t> > data, std::time_t at)
+bool storage::write(std::vector<frame_info> data, milliseconds at)
 {
 	size_t num_frames = data.size();
 	_LocKey data_loc;
@@ -170,19 +188,24 @@ bool storage::write(std::vector<std::vector<uint8_t> > data, std::time_t at)
 			sizeof(size_t));
 		for(auto frame : data)
 		{
-			_LocKey len = frame.size();
+			_LocKey len = frame.data.size();
+			uint64_t tl = frame.msec.count();
 			dfile.write(
 				reinterpret_cast<char *>(&len),
 				sizeof(_LocKey));
 			dfile.write(
-				reinterpret_cast<char *>(frame.data()),
+				reinterpret_cast<char *>(&tl),
+				sizeof(uint64_t));
+			dfile.write(
+				reinterpret_cast<char *>(frame.data.data()),
 				len);
 		}
 	}
 	// write group of picture to data file.
 	{
 		std::unique_lock<std::mutex> lock(imtx);
-		_IdxKey idx_key = make_index_key(at);
+		_IdxKey idx_key = make_index_key(at.count() / 1000);
+		update_timeline(at);
 		if(!ifile.is_open())
 		{
 			std::string ifile_name = fname + ".index";
@@ -203,7 +226,7 @@ bool storage::write(std::vector<std::vector<uint8_t> > data, std::time_t at)
 		ifile.write(
 			reinterpret_cast<char *>(&at),
 			sizeof(_TsKey));
-		idxes[idx_key] = index_info{data_loc, at};
+		idxes[idx_key] = index_info{data_loc, at.count()};
 	}
 	return true;
 }
@@ -214,9 +237,30 @@ storage::_IdxKey storage::make_index_key(const std::time_t time) const
 	return t.tm_min * 1e2 + t.tm_sec;
 }
 
-std::vector<std::vector<uint8_t> > storage::reader::operator()(index_info ii)
+void storage::update_timeline(milliseconds at)
 {
-	std::vector<std::vector<uint8_t> > data;
+	uint64_t tolerance = 1500; // ms
+	uint64_t at_count = at.count();
+	if(__timeline.empty())
+	{
+		__timeline[at_count] = at_count;
+		return;
+	}
+	auto it = std::prev(__timeline.end());
+	auto diff = at_count - it->second;
+	if(diff >= tolerance)
+	{
+		__timeline[at_count] = at_count;
+	}
+	else
+	{
+		it->second = at_count;
+	}
+}
+
+std::vector<storage::frame_info> storage::reader::operator()(index_info ii)
+{
+	std::vector<frame_info> data;
 	std::unique_lock<std::mutex> lock(*dmtx);
 	if(!dfile->is_open())
 	{
@@ -238,22 +282,27 @@ std::vector<std::vector<uint8_t> > storage::reader::operator()(index_info ii)
 	for(size_t n = 0; n < num_frames; ++n)
 	{
 		size_t len;
+		uint64_t tl;
 		std::vector<uint8_t> fr;
 		dfile->read(
 			reinterpret_cast<char *>(&len),
 			sizeof(size_t)
+		);
+		dfile->read(
+			reinterpret_cast<char *>(&tl),
+			sizeof(uint64_t)
 		);
 		fr.resize(len);
 		dfile->read(
 			reinterpret_cast<char *>(fr.data()),
 			len
 		);
-		data.push_back(fr);
+		data.push_back({fr, milliseconds(tl)});
 	}
 	return data;
 }
 
-std::vector<std::vector<uint8_t> > storage::iterator::operator*()
+std::vector<storage::frame_info> storage::iterator::operator*()
 {
 	return __rd(__iter->second);
 }

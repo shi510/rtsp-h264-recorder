@@ -3,9 +3,11 @@
 #include <mutex>
 #include <map>
 #include <vector>
+#include <chrono>
 
 namespace vr
 {
+using namespace std::chrono;
 
 class storage
 {
@@ -43,7 +45,15 @@ class storage
 	*/
 	std::map<_IdxKey, index_info> idxes;
 
+	std::map<uint64_t, uint64_t> __timeline;
+
 public:
+	struct frame_info
+	{
+		std::vector<uint8_t> data;
+		milliseconds msec;
+	};
+
 	class iterator;
 
 	storage(std::string file_name);
@@ -55,10 +65,14 @@ public:
 	bool remove();
 	
 	std::string name() const;
+	
+	std::vector<std::pair<uint64_t, uint64_t>> timeline() const;
+
+	std::pair<uint64_t, uint64_t> recent_timeline() const;
 
 	bool empty() const;
 
-	bool write(std::vector<std::vector<uint8_t> > data, std::time_t at);
+	bool write(std::vector<frame_info> data, milliseconds at);
 
 	iterator find(std::time_t at);
 
@@ -70,6 +84,8 @@ private:
 	_IdxKey make_index_key(const std::time_t time) const;
 
 	bool read_index_file(std::string file);
+
+	void update_timeline(milliseconds at);
 };
 
 class storage::reader
@@ -81,7 +97,7 @@ class storage::reader
 	std::mutex* dmtx;
 
 public:
-	std::vector<std::vector<uint8_t> > operator()(index_info ii);
+	std::vector<frame_info> operator()(index_info ii);
 };
 
 class storage::iterator
@@ -95,7 +111,7 @@ class storage::iterator
 	storage::reader __rd;
 
 public:
-	std::vector<std::vector<uint8_t> > operator*();
+	std::vector<frame_info> operator*();
 
 	this_type operator++();
 

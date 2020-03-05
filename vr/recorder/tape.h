@@ -12,6 +12,7 @@ namespace vr
 class tape
 {
 	typedef uint32_t _StrgKey;
+	typedef uint64_t _TimelineKey;
 
 	static constexpr int SYSTEM_BASE_YEAR = 1900;
 	static constexpr int BASE_YEAR = 2020;
@@ -33,7 +34,13 @@ public:
 
 	void close();
 
-	bool write(std::vector<std::vector<uint8_t>> gop, std::time_t at);
+	bool write(std::vector<storage::frame_info> gop, milliseconds at);
+
+	// get all recording timelines.
+	std::vector<std::pair<uint64_t, uint64_t>> timeline();
+
+	// get recent recording timelines.
+	std::pair<uint64_t, uint64_t> recent_timeline();
 
 	iterator find(std::time_t at);
 
@@ -41,6 +48,9 @@ public:
 
 private:
 	bool aggregate_index(const std::string dir);
+
+	std::vector<std::pair<uint64_t, uint64_t>> merge_timeline(
+		const std::vector<std::pair<uint64_t, uint64_t>>& tls);
 
 	std::shared_ptr<storage> find_storage(
 		const std::time_t time, const bool make = false);
@@ -64,6 +74,8 @@ private:
 	*/
 	std::map<_StrgKey, std::shared_ptr<storage>> strgs;
 
+	std::map<_TimelineKey, uint32_t> __timelines;
+
 	option __opt;
 
 	// folder path of this tape.
@@ -80,10 +92,10 @@ class tape::iterator
 	std::map<_StrgKey, std::shared_ptr<storage>>::iterator __iter;
 	std::map<_StrgKey, std::shared_ptr<storage>>::iterator __iter_end;
 	std::shared_ptr<storage> __strg;
-	std::queue<std::vector<uint8_t>> __buf;
+	std::queue<storage::frame_info> __buf;
 
 public:
-	std::vector<uint8_t> operator*();
+	storage::frame_info operator*();
 
 	this_type operator++();
 
