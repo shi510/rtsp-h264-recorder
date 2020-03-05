@@ -86,6 +86,8 @@ private:
 	bool read_index_file(std::string file);
 
 	void update_timeline(milliseconds at);
+
+	bool repair_if_corrupt(std::string file_name);
 };
 
 class storage::reader
