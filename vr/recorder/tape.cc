@@ -242,12 +242,15 @@ bool tape::remove_all_files()
 storage::frame_info tape::iterator::operator*()
 {
 	auto data = std::move(__buf.front());
-	__buf.pop();
 	return data;
 }
 
 tape::iterator tape::iterator::operator++()
 {
+	if(!__buf.empty())
+	{
+		__buf.pop();
+	}
 	if(__idx_iter == __strg->end())
 	{
 		__iter = std::next(__iter);
