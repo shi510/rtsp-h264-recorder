@@ -241,7 +241,7 @@ bool tape::remove_all_files()
 
 storage::frame_info tape::iterator::operator*()
 {
-	auto data = std::move(__buf.front());
+	auto data = __buf.front();
 	return data;
 }
 
