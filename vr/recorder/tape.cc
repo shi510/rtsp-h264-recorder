@@ -26,11 +26,41 @@ bool tape::open(const std::string dir, option opt)
 	{
 		return remove_all_files();
 	}
+	__stop = false;
+	__write_worker = std::thread(
+		[this]()
+		{
+			while(true)
+			{
+				write_chunk chk;
+				{
+					std::unique_lock<std::mutex> lock(__wmtx);
+					__wcv.wait(lock,
+						[this](){return __stop || !__wbuf.empty();});
+					if(__stop)
+					{
+						break;
+					}
+					chk = std::move(__wbuf.front());
+					__wbuf.pop();
+				}
+				auto sec = time_t(chk.at.count() / 1000);
+				std::shared_ptr<storage> strg = find_storage(sec, true);
+				strg->write(chk.gop, chk.at);
+			}
+		}
+	);
 	return true;
 }
 
 void tape::close()
 {
+	__stop = true;
+	__wcv.notify_one();
+	if(__write_worker.joinable())
+	{
+		__write_worker.join();
+	}
 	for(auto it : strgs)
 	{
 		it.second->close();
@@ -39,9 +69,10 @@ void tape::close()
 
 bool tape::write(std::vector<storage::frame_info> gop, milliseconds at)
 {
-	auto sec = time_t(at.count() / 1000);
-	std::shared_ptr<storage> strg = find_storage(sec, true);
-	return strg->write(gop, at);
+	std::unique_lock<std::mutex> lock(__wmtx);
+	__wbuf.push({gop, at});
+	__wcv.notify_one();
+	return true;
 }
 
 std::vector<std::pair<uint64_t, uint64_t>> tape::timeline()

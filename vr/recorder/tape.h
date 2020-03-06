@@ -5,6 +5,9 @@
 #include <memory>
 #include <vector>
 #include <queue>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 namespace vr
 {
@@ -62,6 +65,12 @@ private:
 	bool remove_all_files();
 
 private:
+	struct write_chunk
+	{
+		std::vector<storage::frame_info> gop;
+		milliseconds at;
+	};
+
 	/*
 	* Key of the map is 
 		a value concatenated with year-yday-hour.
@@ -80,6 +89,16 @@ private:
 
 	// folder path of this tape.
 	std::string _root;
+	// write buffer.
+	std::queue<write_chunk> __wbuf;
+	// thread writer to storage.
+	std::thread __write_worker;
+	// mutex for thread writer.
+	std::mutex __wmtx;
+	// cv for thread writer.
+	std::condition_variable __wcv;
+	// termination condition on thread writer.
+	bool __stop;
 };
 
 class tape::iterator
