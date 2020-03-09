@@ -332,11 +332,11 @@ bool storage::repair_if_corrupt(std::string file_name)
 				data_file.read(
 					reinterpret_cast<char *>(&msec),
 					sizeof(uint64_t));
+				data_file.seekp(len, std::ios::cur);
 				if(data_file.eof())
 				{
 					break;
 				}
-				data_file.seekp(len, std::ios::cur);
 				total_len += sizeof(_LocKey);
 				total_len += sizeof(uint64_t);
 				total_len += len;
@@ -344,8 +344,10 @@ bool storage::repair_if_corrupt(std::string file_name)
 			if(data_fsize != last_loc + total_len)
 			{
 				data_file.close();
+				index_file.close();
 				// remove contaminated data in data file.
 				fs::resize_file(file_name + ".data", last_loc);
+				fs::resize_file(file_name + ".index", idx_fsize - idx_chunk_size);
 			}
 			else{
 				// data file is ok.
