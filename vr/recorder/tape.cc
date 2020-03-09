@@ -272,7 +272,7 @@ storage::frame_info tape::iterator::operator*()
 	return data;
 }
 
-tape::iterator tape::iterator::operator++()
+tape::iterator& tape::iterator::operator++()
 {
 	if(!__buf.empty())
 	{
@@ -310,12 +310,12 @@ tape::iterator tape::iterator::operator++()
 	return *this;
 }
 
-bool tape::iterator::operator==(this_type it)
+bool tape::iterator::operator==(const this_type& it) const
 {
 	return __iter == it.__iter;
 }
 
-bool tape::iterator::operator!=(this_type it)
+bool tape::iterator::operator!=(const this_type& it) const
 {
 	return __iter != it.__iter;
 }

@@ -115,13 +115,13 @@ class storage::iterator
 public:
 	std::vector<frame_info> operator*();
 
-	this_type operator++();
+	this_type& operator++();
 
-	this_type operator--();
+	this_type& operator--();
 
-	bool operator==(this_type it);
+	bool operator==(const this_type& it) const;
 
-	bool operator!=(this_type it);
+	bool operator!=(const this_type& it) const;
 };
 
 } // end namespace vr

@@ -422,24 +422,24 @@ std::vector<storage::frame_info> storage::iterator::operator*()
 	return __rd(__iter->second);
 }
 
-storage::iterator storage::iterator::operator++()
+storage::iterator& storage::iterator::operator++()
 {
 	__iter = std::next(__iter);
 	return *this;
 }
 
-storage::iterator storage::iterator::operator--()
+storage::iterator& storage::iterator::operator--()
 {
 	__iter = std::prev(__iter);
 	return *this;
 }
 
-bool storage::iterator::operator==(this_type it)
+bool storage::iterator::operator==(const this_type& it) const
 {
 	return __iter == it.__iter;
 }
 
-bool storage::iterator::operator!=(this_type it)
+bool storage::iterator::operator!=(const this_type& it) const
 {
 	return __iter != it.__iter;
 }
