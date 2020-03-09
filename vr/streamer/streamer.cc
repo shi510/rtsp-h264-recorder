@@ -25,8 +25,7 @@ bool streamer::open(int port, int max_queue)
 		exit(EXIT_FAILURE);
 	}
 
-	if(setsockopt(_server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
-		&opt, sizeof(opt)))
+	if(setsockopt(_server_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)))
 	{
 		perror("setsockopt");
 		exit(EXIT_FAILURE);
