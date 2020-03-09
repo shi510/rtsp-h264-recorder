@@ -389,6 +389,13 @@ std::vector<storage::frame_info> storage::reader::operator()(index_info ii)
 			// std::cout<<"Fail: "<<dfname<<std::endl;
 		}
 	}
+	dfile->seekg(0, std::ios::end);
+	auto dfile_size = static_cast<long>(dfile->tellg());
+	if(dfile_size <= ii.loc)
+	{
+		std::cerr<<"[storage.cc] dfile_size <= ii.loc"<<std::endl;
+		return data;
+	}
 	size_t num_frames;
 	dfile->seekg(std::ios::beg + ii.loc);
 	dfile->read(
