@@ -92,7 +92,6 @@ std::vector<std::pair<uint64_t, uint64_t>> tape::timeline()
 
 std::pair<uint64_t, uint64_t> tape::recent_timeline()
 {
-	std::pair<uint64_t, uint64_t> tl;
 	auto it = std::prev(strgs.end());
 	if(it == strgs.end())
 	{
@@ -176,17 +175,14 @@ std::vector<std::pair<uint64_t, uint64_t>> tape::merge_timeline(
 	auto first_it = tls.begin();
 	auto next_it = std::next(first_it);
 	merged.push_back(*first_it);
-	// std::cout<<"try merge..."<<std::endl;
 	if(next_it == tls.end())
 	{
-		// std::cout<<"there is no time to merge."<<std::endl;
 		return merged;
 	}
 	while(next_it != tls.end())
 	{
 		auto pivot_it = std::prev(merged.end());
 		auto junction_diff = next_it->first - (pivot_it->second);
-		// std::cout<<"merge diff : "<<junction_diff<<std::endl;
 		if(junction_diff <= 1500)
 		{
 			pivot_it->second = next_it->second;

@@ -265,13 +265,14 @@ void storage::update_timeline(milliseconds at)
 
 bool storage::repair_if_corrupt(std::string file_name)
 {
+	namespace fs = std::filesystem;
 	std::ios::openmode mode = std::ios::in | std::ios::out |
 		std::ios::binary | std::ios::app;
-	if(!std::filesystem::exists(file_name + ".data"))
+	if(!fs::exists(file_name + ".data"))
 	{
 		return true;
 	}
-	if(!std::filesystem::exists(file_name + ".index"))
+	if(!fs::exists(file_name + ".index"))
 	{
 		return true;
 	}
@@ -292,9 +293,6 @@ bool storage::repair_if_corrupt(std::string file_name)
 	auto data_fsize = int64_t(data_file.tellg());
 	auto idx_chunk_size = int64_t(sizeof(_LocKey) + sizeof(_TsKey));
 	auto remainder = idx_fsize % idx_chunk_size;
-	std::cout<<"repair_if_corrupt : "<<file_name<<std::endl;
-	std::cout<<"\t";
-	std::cout<<"reminader : "<<remainder<<"@"<<idx_fsize<<", "<<idx_chunk_size<<std::endl;
 
 	// index file is ok.
 	if(remainder == 0)
@@ -309,10 +307,12 @@ bool storage::repair_if_corrupt(std::string file_name)
 		index_file.read(
 			reinterpret_cast<char *>(&last_ts),
 			sizeof(_TsKey));
-		std::cout<<"\t"<<last_loc<<", "<<ctime(&last_ts);
 		if(last_loc >= data_fsize)
 		{
-			std::cout<<"\t"<<"@@@@ data corruption : "<<last_loc<<", "<<data_fsize<<std::endl;
+			index_file.close();
+			data_file.close();
+			fs::resize_file(file_name + ".index", idx_fsize - idx_chunk_size);
+			repair_if_corrupt(file_name);
 		}
 		else
 		{
@@ -341,27 +341,23 @@ bool storage::repair_if_corrupt(std::string file_name)
 				total_len += sizeof(uint64_t);
 				total_len += len;
 			}
-			std::cout<<"\t"<<"# frames : "<<num_frames<<std::endl;
 			if(data_fsize != last_loc + total_len)
 			{
-				std::cout<<"\t"<<"data file is corrupted, try repair: ";
-				std::cout<<data_fsize<<"@"<<last_loc + total_len<<std::endl;
 				data_file.close();
 				// remove contaminated data in data file.
-				std::filesystem::resize_file(file_name + ".data", last_loc);
+				fs::resize_file(file_name + ".data", last_loc);
 			}
 			else{
-				std::cout<<"\t"<<"data file is ok."<<std::endl;
+				// data file is ok.
 			}
 		}
 	}
 	// index file is corrupted.
 	else
 	{
-		std::cout<<"\t"<<"index file is corrupted"<<std::endl;
 		index_file.close();
 		data_file.close();
-		std::filesystem::resize_file(file_name + ".index", idx_fsize - remainder);
+		fs::resize_file(file_name + ".index", idx_fsize - remainder);
 		// reparing index file is done.
 		// try to repair again.
 		repair_if_corrupt(file_name);
