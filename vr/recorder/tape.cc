@@ -288,7 +288,12 @@ tape::iterator tape::iterator::operator++()
 		}
 		else
 		{
-			// Should i do something hear?
+			// __iter is the end of iterator in hear.
+			// try get previous iterator.
+			// and get std::next again later.
+			// the latest index with the latest storage.
+			__iter = std::prev(__iter);
+			__idx_iter = --__iter->second->end();
 		}
 	}
 	else{
