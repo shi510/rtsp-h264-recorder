@@ -1,5 +1,4 @@
 #include "vr/recorder/tape.h"
-#include "vr/utility/handy.h"
 #include <filesystem>
 #include <sstream>
 #include <regex>
@@ -126,7 +125,7 @@ tape::iterator tape::end()
 bool tape::aggregate_index(const std::string dir)
 {
 	auto name_criterion = 
-		"^((\\d{4})-(\\d{2})-(\\d{2})@(\\d{2})-(\\d{2})-(\\d{2}))\\.index";
+		"^(\\d{4}-\\d{2}-\\d{2}@\\d{2}-\\d{2}-\\d{2})\\.index";
 	std::regex re(name_criterion);
 	if(!std::filesystem::exists(dir))
 	{
@@ -144,15 +143,9 @@ bool tape::aggregate_index(const std::string dir)
 			std::cmatch cm;
 			if(std::regex_match(fname.c_str(), cm, re))
 			{
-				std::tm t{
-					.tm_sec = atoi(cm[7].str().c_str()),
-					.tm_min = atoi(cm[6].str().c_str()),
-					.tm_hour = atoi(cm[5].str().c_str()) + utility::get_utc_diff(),
-					.tm_mday = atoi(cm[4].str().c_str()),
-					.tm_mon = atoi(cm[3].str().c_str()) - 1,
-					.tm_year = atoi(cm[2].str().c_str()) - SYSTEM_BASE_YEAR
-				};
-				auto strg = find_storage(mktime(&t), true);
+				std::tm t;
+				strptime(cm[1].str().c_str(), "%Y-%m-%d@%H-%M-%S", &t);
+				auto strg = find_storage(timegm(&t), true);
 				if(strg->empty())
 				{
 					std::cerr<<"Fail to read: "<<p.path().string()<<std::endl;
