@@ -22,11 +22,7 @@ class writer
 
 	std::shared_ptr<vr::tape> _tp;
 	std::shared_ptr<vr::cam_reader> _cr;
-	std::mutex _write_mtx;
-	std::condition_variable _wbuf_cond;
-	std::thread _write_worker;
-	std::thread _read_worker;
-	std::queue<chunk> _wbuf;
+	std::thread _worker;
 	bool _stop_working;
 	bool _is_delay;
 	int _delay_sec;
