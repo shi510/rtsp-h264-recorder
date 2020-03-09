@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
 		{
 			std::tm t;
 			strptime(cm[1].str().c_str(), "%Y-%m-%d@%H-%M-%S", &t);
-			auto tt = mktime(&t) + t.tm_gmtoff;
+			auto tt = timegm(&t);
 			std::cout<<"New past view"<<std::endl;
 			stop = true;
 			std::cout<<"wait old past view... ";
@@ -80,32 +80,32 @@ int main(int argc, char* argv[])
 			view_thread = std::thread(
 				[&tp, &stop, &streamer, tt]() mutable
 				{
-					using ms = std::chrono::duration<int, std::milli>;
+					using namespace std::chrono;
+					using ms = duration<int, std::milli>;
 					auto tp_iter = tp->find(tt);
 					if(tp_iter == tp->end())
 					{
 						std::cout<<"tape not found."<<std::endl;
+						return;
 					}
-					while(tp_iter != tp->end())
+					auto fi = *tp_iter;
+					while(true)
 					{
 						if(stop)
 						{
 							break;
 						}
-						auto fi = *tp_iter;
-						auto st = fi.msec;
-						if(!fi.data.empty())
-						{
-							streamer->broadcast(fi.data);
-						}
-						if(tp_iter == tp->end())
-						{
-							break;
-						}
+						auto ftime = fi.msec;
 						++tp_iter;
+						if(!fi.data.empty())
+							streamer->broadcast(fi.data);
+						if(tp_iter == tp->end())
+							break;
 						fi = *tp_iter;
-						auto et = fi.msec;
-						std::this_thread::sleep_for(ms(et-st));
+						auto interval = (fi.msec - ftime).count();
+						interval = std::min(std::max(interval, 0ll), 200ll);
+						std::this_thread::sleep_for(ms(interval));
+						
 					}
 				}
 			);
