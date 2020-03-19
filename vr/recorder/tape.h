@@ -55,8 +55,11 @@ private:
 	std::vector<std::pair<uint64_t, uint64_t>> merge_timeline(
 		const std::vector<std::pair<uint64_t, uint64_t>>& tls);
 
-	std::shared_ptr<storage> find_storage(
-		const std::time_t time, const bool make = false);
+	std::shared_ptr<storage> find_storage(const std::time_t time);
+
+	std::shared_ptr<storage> create_storage(const std::time_t time);
+
+	bool remove_oldest_storage(bool repeat = false);
 
 	_StrgKey make_storage_key(const std::time_t time) const;
 

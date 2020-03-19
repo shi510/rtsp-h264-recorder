@@ -25,6 +25,7 @@ bool tape::open(const std::string dir, option opt)
 	{
 		return remove_all_files();
 	}
+	remove_oldest_storage(true);
 	__stop = false;
 	__write_worker = std::thread(
 		[this]()
@@ -44,7 +45,15 @@ bool tape::open(const std::string dir, option opt)
 					__wbuf.pop();
 				}
 				auto sec = time_t(chk.at.count() / 1000);
-				std::shared_ptr<storage> strg = find_storage(sec, true);
+				std::shared_ptr<storage> strg = find_storage(sec);
+				if(!strg)
+				{
+					strg = create_storage(sec);
+					if(!remove_oldest_storage())
+					{
+						// fail to remove oldest storage.
+					}
+				}
 				strg->write(chk.gop, chk.at);
 			}
 		}
@@ -145,7 +154,7 @@ bool tape::aggregate_index(const std::string dir)
 			{
 				std::tm t;
 				strptime(cm[1].str().c_str(), "%Y-%m-%d@%H-%M-%S", &t);
-				auto strg = find_storage(timegm(&t), true);
+				auto strg = create_storage(timegm(&t));
 				if(strg->empty())
 				{
 					std::cerr<<"Fail to read: "<<p.path().string()<<std::endl;
@@ -198,37 +207,52 @@ uint32_t tape::make_storage_key(const std::time_t time) const
 		t.tm_hour;
 }
 
-std::shared_ptr<storage> tape::find_storage(
-	const std::time_t time,
-	const bool make)
+std::shared_ptr<storage> tape::find_storage(const std::time_t time)
 {
 	auto strg_key = make_storage_key(time);
 	auto strg_it = strgs.find(strg_key);
-	if(strg_it != strgs.end())
+	if(strg_it == strgs.end())
 	{
-		return strg_it->second;
+		return nullptr;
 	}
-	else if(make)
+	return strg_it->second;
+}
+
+std::shared_ptr<storage> tape::create_storage(const std::time_t time)
+{
+	auto strg_key = make_storage_key(time);
+	auto strg = std::make_shared<storage>(make_file_name(time));
+	strgs[strg_key] = strg;
+	return strg;
+}
+
+bool tape::remove_oldest_storage(bool repeat)
+{
+	while(!strgs.empty())
 	{
-		auto strg = std::make_shared<storage>(make_file_name(time));
-		strgs[strg_key] = strg;
 		auto oldest_strg_it = strgs.begin();
-		auto day_diff = strg_key / 100 - oldest_strg_it->first / 100;
-		if(day_diff >= __opt.max_days)
+		auto recent_strg_it = std::prev(strgs.end());
+		auto day_diff = recent_strg_it->first - oldest_strg_it->first;
+		if(day_diff >= __opt.max_days * 100)
 		{
-			if(!oldest_strg_it->second->remove())
-			{
-				std::cerr<<"Fail to remove the oldest storage: ";
-				std::cerr<<oldest_strg_it->second->name()<<std::endl;
-			}
-			else
+			if(oldest_strg_it->second->remove())
 			{
 				strgs.erase(oldest_strg_it);
 			}
+			else
+			{
+				std::cerr<<"Fail to remove the oldest storage: ";
+				std::cerr<<oldest_strg_it->second->name()<<std::endl;
+				return false;
+			}
 		}
-		return strg;
+		else
+			break;
+		if(repeat)
+			continue;
 	}
-	return nullptr;
+
+	return true;
 }
 
 std::string tape::make_file_name(const std::time_t time) const
