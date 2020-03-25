@@ -43,7 +43,7 @@ public:
 	std::vector<std::pair<uint64_t, uint64_t>> timeline();
 
 	// get recent recording timelines.
-	std::pair<uint64_t, uint64_t> recent_timeline();
+	std::shared_ptr<std::pair<uint64_t, uint64_t>> recent_timeline();
 
 	iterator find(std::time_t at);
 

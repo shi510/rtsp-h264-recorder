@@ -98,14 +98,11 @@ std::vector<std::pair<uint64_t, uint64_t>> tape::timeline()
 	// return tls;
 }
 
-std::pair<uint64_t, uint64_t> tape::recent_timeline()
+std::shared_ptr<std::pair<uint64_t, uint64_t>> tape::recent_timeline()
 {
+    if(strgs.size() == 0) return nullptr;
 	auto it = std::prev(strgs.end());
-	if(it == strgs.end())
-	{
-		// TODO: check this section.
-	}
-	return it->second->recent_timeline();
+	return std::make_shared<std::pair<uint64_t, uint64_t>>(it->second->recent_timeline());
 }
 
 tape::iterator tape::find(std::time_t at)
