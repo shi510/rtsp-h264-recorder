@@ -294,8 +294,14 @@ bool storage::repair_if_corrupt(std::string file_name)
 	auto idx_chunk_size = int64_t(sizeof(_LocKey) + sizeof(_TsKey));
 	auto remainder = idx_fsize % idx_chunk_size;
 
+	if(idx_fsize == 0)
+	{
+		index_file.close();
+		data_file.close();
+		fs::resize_file(file_name + ".data", 0);
+	}
 	// index file is ok.
-	if(remainder == 0)
+	else if(remainder == 0)
 	{
 		//check data corruption
 		_LocKey last_loc;
