@@ -219,10 +219,7 @@ std::shared_ptr<storage> tape::create_storage(const std::time_t time)
 {
 	auto strg_key = make_storage_key(time);
 	auto strg = std::make_shared<storage>(make_file_name(time));
-	if(!strg->empty())
-	{
-		strgs[strg_key] = strg;
-	}
+	strgs[strg_key] = strg;
 	return strg;
 }
 
