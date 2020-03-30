@@ -32,22 +32,23 @@ void storage::close()
 
 bool storage::remove()
 {
+	bool status = true;
 	close();
 	{
 		if(!std::filesystem::remove(fname + ".data"))
 		{
 			std::cerr<<"Fail to remove "<<fname + ".data"<<std::endl;
-			return false;
+			status = false;
 		}
 	}
 	{
 		if(!std::filesystem::remove(fname + ".index"))
 		{
 			std::cerr<<"Fail to remove "<<fname + ".index"<<std::endl;
-			return false;
+			status = false;
 		}
 	}
-	return true;
+	return status;
 }
 
 std::string storage::name() const
