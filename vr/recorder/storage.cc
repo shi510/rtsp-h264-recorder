@@ -69,6 +69,7 @@ std::vector<std::pair<uint64_t, uint64_t>> storage::timeline() const
 
 std::pair<uint64_t, uint64_t> storage::recent_timeline() const
 {
+	if(__timeline.size() == 0) return std::make_pair(0, 0);
 	auto it = std::prev(__timeline.end());
 	return std::make_pair(it->first, it->second);
 }

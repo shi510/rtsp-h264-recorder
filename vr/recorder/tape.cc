@@ -100,9 +100,10 @@ std::vector<std::pair<uint64_t, uint64_t>> tape::timeline()
 
 std::shared_ptr<std::pair<uint64_t, uint64_t>> tape::recent_timeline()
 {
-    if(strgs.size() == 0) return nullptr;
-	auto it = std::prev(strgs.end());
-	return std::make_shared<std::pair<uint64_t, uint64_t>>(it->second->recent_timeline());
+	if(strgs.size() == 0) return nullptr;
+	auto tl = std::prev(strgs.end())->second->recent_timeline();
+	if(tl.second == 0) return nullptr;
+	return std::make_shared<std::pair<uint64_t, uint64_t>>(tl);
 }
 
 tape::iterator tape::find(std::time_t at)
