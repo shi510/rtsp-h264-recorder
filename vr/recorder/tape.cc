@@ -156,7 +156,12 @@ bool tape::aggregate_index(const std::string dir)
 				if(strg->empty())
 				{
 					std::cerr<<"Fail to read: "<<p.path().string()<<std::endl;
-					return false;
+					auto strg_key = make_storage_key(timegm(&t));
+					auto strg_it = strgs.find(strg_key);
+					if(strg_it != strgs.end())
+					{
+						strgs.erase(strg_it);
+					}
 				}
 			}
 		}
@@ -233,21 +238,15 @@ bool tape::remove_oldest_storage(bool repeat)
 		auto day_diff = recent_strg_it->first - oldest_strg_it->first;
 		if(day_diff >= __opt.max_days * 100)
 		{
-			if(oldest_strg_it->second->remove())
-			{
-				strgs.erase(oldest_strg_it);
-			}
-			else
+			strgs.erase(oldest_strg_it);
+			if(!oldest_strg_it->second->remove())
 			{
 				std::cerr<<"Fail to remove the oldest storage: ";
 				std::cerr<<oldest_strg_it->second->name()<<std::endl;
-				return false;
 			}
 		}
-		else
+		if(!repeat)
 			break;
-		if(repeat)
-			continue;
 	}
 
 	return true;
