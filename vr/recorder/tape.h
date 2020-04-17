@@ -59,7 +59,7 @@ private:
 
 	std::shared_ptr<storage> create_storage(const std::time_t time);
 
-	bool remove_oldest_storage(bool repeat = false);
+	bool remove_oldest_storage();
 
 	_StrgKey make_storage_key(const std::time_t time) const;
 

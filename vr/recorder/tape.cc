@@ -25,7 +25,7 @@ bool tape::open(const std::string dir, option opt)
 	{
 		return remove_all_files();
 	}
-	remove_oldest_storage(true);
+	remove_oldest_storage();
 	__stop = false;
 	__write_worker = std::thread(
 		[this]()
@@ -89,7 +89,7 @@ std::vector<std::pair<uint64_t, uint64_t>> tape::timeline()
 	for(auto it : strgs)
 	{
 		auto cur_tl = it.second->timeline();
-		for(auto tl : cur_tl)
+		for(auto& tl : cur_tl)
 		{
 			tls.push_back(tl);
 		}
@@ -100,10 +100,11 @@ std::vector<std::pair<uint64_t, uint64_t>> tape::timeline()
 
 std::shared_ptr<std::pair<uint64_t, uint64_t>> tape::recent_timeline()
 {
-	if(strgs.size() == 0) return nullptr;
-	auto tl = std::prev(strgs.end())->second->recent_timeline();
-	if(tl.second == 0) return nullptr;
-	return std::make_shared<std::pair<uint64_t, uint64_t>>(tl);
+	auto tls = timeline();
+	if(tls.size() == 0) return nullptr;
+	auto tl = tls.rbegin();
+	if(tl->second == 0) return nullptr;
+	return std::make_shared<std::pair<uint64_t, uint64_t>>(*tl);
 }
 
 tape::iterator tape::find(std::time_t at)
@@ -229,7 +230,7 @@ std::shared_ptr<storage> tape::create_storage(const std::time_t time)
 	return strg;
 }
 
-bool tape::remove_oldest_storage(bool repeat)
+bool tape::remove_oldest_storage()
 {
 	while(!strgs.empty())
 	{
@@ -245,8 +246,10 @@ bool tape::remove_oldest_storage(bool repeat)
 				std::cerr<<oldest_strg_it->second->name()<<std::endl;
 			}
 		}
-		if(!repeat)
+		else
+		{
 			break;
+		}
 	}
 
 	return true;
