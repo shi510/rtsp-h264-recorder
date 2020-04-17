@@ -239,12 +239,12 @@ bool tape::remove_oldest_storage()
 		auto day_diff = recent_strg_it->first - oldest_strg_it->first;
 		if(day_diff >= __opt.max_days * 100)
 		{
-			strgs.erase(oldest_strg_it);
 			if(!oldest_strg_it->second->remove())
 			{
 				std::cerr<<"Fail to remove the oldest storage: ";
 				std::cerr<<oldest_strg_it->second->name()<<std::endl;
 			}
+			strgs.erase(oldest_strg_it);
 		}
 		else
 		{
