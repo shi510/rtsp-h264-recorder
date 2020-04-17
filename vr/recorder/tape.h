@@ -37,6 +37,8 @@ public:
 
 	void close();
 
+	bool update_option(option opt);
+
 	bool write(std::vector<storage::frame_info> gop, milliseconds at);
 
 	// get all recording timelines.

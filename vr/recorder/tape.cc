@@ -75,6 +75,20 @@ void tape::close()
 	}
 }
 
+bool tape::update_option(option opt)
+{
+	std::unique_lock<std::mutex> lock(__wmtx);
+	__opt = opt;
+	if(__opt.remove_previous)
+	{
+		return remove_all_files();
+	}
+	else
+	{
+		return remove_oldest_storage();
+	}
+}
+
 bool tape::write(std::vector<storage::frame_info> gop, milliseconds at)
 {
 	std::unique_lock<std::mutex> lock(__wmtx);
