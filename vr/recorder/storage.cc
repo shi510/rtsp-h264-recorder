@@ -394,7 +394,9 @@ std::vector<storage::frame_info> storage::reader::operator()(index_info ii)
 		dfile->open(dfname, mode);
 		if(!dfile->is_open())
 		{
-			// std::cout<<"Fail: "<<dfname<<std::endl;
+			std::cerr<<"[storage.cc, reader::operator()] ";
+			std::cerr<<"Fail to open: "<<dfname<<std::endl;
+			return data;
 		}
 	}
 	dfile->seekg(0, std::ios::end);
