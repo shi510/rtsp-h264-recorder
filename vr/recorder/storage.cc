@@ -37,14 +37,14 @@ bool storage::remove()
 	{
 		if(!std::filesystem::remove(fname + ".data"))
 		{
-			std::cerr<<"Fail to remove "<<fname + ".data"<<std::endl;
+			// std::cerr<<"Fail to remove "<<fname + ".data"<<std::endl;
 			status = false;
 		}
 	}
 	{
 		if(!std::filesystem::remove(fname + ".index"))
 		{
-			std::cerr<<"Fail to remove "<<fname + ".index"<<std::endl;
+			// std::cerr<<"Fail to remove "<<fname + ".index"<<std::endl;
 			status = false;
 		}
 	}
@@ -246,7 +246,7 @@ storage::_IdxKey storage::make_index_key(const std::time_t time) const
 
 void storage::update_timeline(milliseconds at)
 {
-	uint64_t tolerance = 1500; // ms
+	constexpr uint64_t tolerance = 1500; // ms
 	uint64_t at_count = at.count();
 	if(__timeline.empty())
 	{
@@ -412,6 +412,10 @@ std::vector<storage::frame_info> storage::reader::operator()(index_info ii)
 		reinterpret_cast<char *>(&num_frames),
 		sizeof(size_t)
 	);
+	if(num_frames > 100)
+	{
+		return data;
+	}
 	// read gop.
 	for(size_t n = 0; n < num_frames; ++n)
 	{

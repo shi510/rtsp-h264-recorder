@@ -299,8 +299,12 @@ bool tape::remove_all_files()
 
 storage::frame_info tape::iterator::operator*()
 {
-	auto data = __buf.front();
-	return data;
+	if(!__buf.empty())
+	{
+		auto data = __buf.front();
+		return data;
+	}
+	return storage::frame_info();
 }
 
 tape::iterator& tape::iterator::operator++()
