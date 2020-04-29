@@ -329,6 +329,13 @@ bool storage::repair_if_corrupt(std::string file_name)
 			data_file.read(
 				reinterpret_cast<char *>(&num_frames),
 				sizeof(size_t));
+			if(num_frames > 100)
+			{
+				std::cerr<<file_name + ".data"<<std::endl;
+				std::cerr<<"    GOP is too large: "<<num_frames<<std::endl;
+				std::cerr<<"    renounce to repair"<<std::endl;
+				return false;
+			}
 			uint64_t total_len = sizeof(size_t);
 			for(int n = 0; n < num_frames; ++n)
 			{
@@ -414,6 +421,9 @@ std::vector<storage::frame_info> storage::reader::operator()(index_info ii)
 	);
 	if(num_frames > 100)
 	{
+		std::cerr<<dfname<<std::endl;
+		std::cerr<<"    GOP is too large: "<<num_frames<<std::endl;
+		std::cerr<<"    renounce to read frame at "<<ii.ts<<std::endl;
 		return data;
 	}
 	// read gop.
