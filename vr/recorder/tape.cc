@@ -91,6 +91,11 @@ bool tape::update_option(option opt)
 	}
 }
 
+tape::option tape::get_option() const
+{
+	return __opt;
+}
+
 bool tape::write(std::vector<storage::frame_info> gop, milliseconds at)
 {
 	std::unique_lock<std::mutex> lock(__wmtx);

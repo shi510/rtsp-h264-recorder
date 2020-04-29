@@ -38,6 +38,8 @@ public:
 	void close();
 
 	bool update_option(option opt);
+	
+	option get_option() const;
 
 	bool write(std::vector<storage::frame_info> gop, milliseconds at);
 
