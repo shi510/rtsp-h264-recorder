@@ -248,16 +248,21 @@ std::shared_ptr<storage> tape::create_storage(const std::time_t time)
 
 bool tape::remove_oldest_storage()
 {
-	while(!strgs.empty())
+	for(int n = 0; n < strgs.size(); ++n)
 	{
 		auto oldest_strg_it = strgs.begin();
 		auto recent_strg_it = std::prev(strgs.end());
 		auto day_diff = recent_strg_it->first - oldest_strg_it->first;
 		if(day_diff >= __opt.max_days * 100)
 		{
+			std::cerr<<"Tring delete..."<<std::endl;
+			std::cerr<<"    oldest day : "<<oldest_strg_it->first<<std::endl;
+			std::cerr<<"    recent day : "<<recent_strg_it->first<<std::endl;
+			std::cerr<<"    diff       : "<<day_diff<<std::endl;
+			std::cerr<<"    max days   : "<<__opt.max_days * 100<<std::endl;
 			if(!oldest_strg_it->second->remove())
 			{
-				std::cerr<<"Fail to remove the oldest storage: ";
+				std::cerr<<"    Fail to remove the oldest storage: ";
 				std::cerr<<oldest_strg_it->second->name()<<std::endl;
 			}
 			strgs.erase(oldest_strg_it);
