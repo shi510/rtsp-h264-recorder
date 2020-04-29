@@ -69,6 +69,8 @@ private:
 
 	bool remove_all_files();
 
+	void restrict_option();
+
 private:
 	struct write_chunk
 	{

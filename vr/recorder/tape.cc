@@ -17,6 +17,7 @@ bool tape::open(const std::string dir, option opt)
 {
 	_root = dir;
 	__opt = opt;
+	restrict_option();
 	if(!aggregate_index(_root))
 	{
 		return false;
@@ -79,6 +80,7 @@ bool tape::update_option(option opt)
 {
 	std::unique_lock<std::mutex> lock(__wmtx);
 	__opt = opt;
+	restrict_option();
 	if(__opt.remove_previous)
 	{
 		return remove_all_files();
@@ -295,6 +297,15 @@ bool tape::remove_all_files()
 	}
 	strgs.clear();
 	return true;
+}
+
+void tape::restrict_option()
+{
+	// set minimum max_days.
+	if(__opt.max_days < 1)
+	{
+		__opt.max_days = 1;
+	}
 }
 
 storage::frame_info tape::iterator::operator*()
