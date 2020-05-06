@@ -55,7 +55,7 @@ bool tape::open(const std::string dir, option opt)
 						// fail to remove oldest storage.
 					}
 				}
-				strg->write(chk.gop, chk.at);
+				if(strg){strg->write(chk.gop, chk.at);}
 			}
 		}
 	);
@@ -224,7 +224,7 @@ std::vector<std::pair<uint64_t, uint64_t>> tape::merge_timeline(
 	return merged;
 }
 
-uint32_t tape::make_storage_key(const std::time_t time) const
+tape::_StrgKey tape::make_storage_key(const std::time_t time) const
 {
 	auto t = *gmtime(&time);
 	return (t.tm_year - (tape::BASE_YEAR - SYSTEM_BASE_YEAR)) * 1e5 +
@@ -246,6 +246,7 @@ std::shared_ptr<storage> tape::find_storage(const std::time_t time)
 std::shared_ptr<storage> tape::create_storage(const std::time_t time)
 {
 	auto strg_key = make_storage_key(time);
+	if(strg_key < 0){return nullptr;}
 	auto strg = std::make_shared<storage>(make_file_name(time));
 	strgs[strg_key] = strg;
 	return strg;
@@ -260,7 +261,7 @@ bool tape::remove_oldest_storage()
 		auto day_diff = recent_strg_it->first - oldest_strg_it->first;
 		if(day_diff >= __opt.max_days * 100)
 		{
-			std::cerr<<"Tring delete..."<<std::endl;
+			std::cerr<<"Trying delete..."<<std::endl;
 			std::cerr<<"    oldest day : "<<oldest_strg_it->first<<std::endl;
 			std::cerr<<"    recent day : "<<recent_strg_it->first<<std::endl;
 			std::cerr<<"    diff       : "<<day_diff<<std::endl;

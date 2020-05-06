@@ -14,13 +14,13 @@ namespace vr
 
 class tape
 {
-	typedef uint32_t _StrgKey;
+public:
+	typedef int32_t _StrgKey;
 	typedef uint64_t _TimelineKey;
 
 	static constexpr int SYSTEM_BASE_YEAR = 1900;
 	static constexpr int BASE_YEAR = 2020;
 
-public:
 	struct option
 	{
 		// keep storages upto max_days.
