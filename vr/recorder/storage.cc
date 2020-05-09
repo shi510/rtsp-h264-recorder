@@ -142,7 +142,7 @@ bool storage::read_index_file(std::string file)
 	if(!index_file.is_open())
 		return false;
 	index_file.seekg(std::ios::beg);
-	while(!index_file.fail())
+	while(true)
 	{
 		index_info ii;
 		index_file.read(
@@ -153,8 +153,13 @@ bool storage::read_index_file(std::string file)
 			reinterpret_cast<char *>(&ii.ts),
 			sizeof(_TsKey)
 		);
-		if(index_file.eof())
+		if(index_file.eof() || index_file.fail())
+		{
+			std::cerr<<"storage::read_index_file() - ";
+			std::cerr<<"index_file.eof() || index_file.fail()...";
+			std::cerr<<index_file.eof()<<" || "<<index_file.fail()<<std::endl;
 			break;
+		}
 		_LocKey idx_key = make_index_key(ii.ts / 1000);
 		if(idxes.find(idx_key) != idxes.end())
 		{
