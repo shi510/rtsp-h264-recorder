@@ -176,6 +176,17 @@ bool storage::read_index_file(std::string file)
 bool storage::write(std::vector<frame_info> data, milliseconds at)
 {
 	size_t num_frames = data.size();
+	if(!idxes.empty())
+	{
+		_TsKey ts = std::prev(idxes.end())->second.ts;
+		if(ts > at.count())
+		{
+			std::cerr<<"storage::write() - Fail to write a frame - ";
+			std::cerr<<"got your time "<<at.count()<<", but less than "<<ts<<std::endl;
+			return false;
+		}
+	}
+	
 	_LocKey data_loc;
 	{
 		std::unique_lock<std::mutex> lock(dmtx);
