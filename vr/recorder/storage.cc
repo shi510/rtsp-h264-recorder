@@ -142,7 +142,7 @@ bool storage::read_index_file(std::string file)
 	if(!index_file.is_open())
 		return false;
 	index_file.seekg(std::ios::beg);
-	while(true)
+	while(!index_file.fail())
 	{
 		index_info ii;
 		index_file.read(
