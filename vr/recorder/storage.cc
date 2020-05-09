@@ -153,11 +153,13 @@ bool storage::read_index_file(std::string file)
 			reinterpret_cast<char *>(&ii.ts),
 			sizeof(_TsKey)
 		);
-		if(index_file.eof() || index_file.fail())
+		if(index_file.eof())
 		{
-			std::cerr<<"storage::read_index_file() - ";
-			std::cerr<<"index_file.eof() || index_file.fail()...";
-			std::cerr<<index_file.eof()<<" || "<<index_file.fail()<<std::endl;
+			break;
+		}
+		else if(index_file.fail())
+		{
+			std::cerr<<"storage::read_index_file() - index_file.fail()"<<std::endl;
 			break;
 		}
 		_LocKey idx_key = make_index_key(ii.ts / 1000);
