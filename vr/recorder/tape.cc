@@ -55,7 +55,18 @@ bool tape::open(const std::string dir, option opt)
 						// fail to remove oldest storage.
 					}
 				}
-				if(strg){strg->write(chk.gop, chk.at);}
+				if(strg)
+				{
+					if(strg->name() == "")
+					{
+						std::cout<<"tape::write_worker - storage name is empty"<<std::endl;
+						std::cout<<'\t'<<asctime(gmtime(&sec));
+					}
+					else
+					{
+						strg->write(chk.gop, chk.at);
+					}
+				}
 			}
 		}
 	);

@@ -239,10 +239,12 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 					std::filesystem::path(dfile_name).parent_path(), ec);
 				if(ec.value())
 				{
+					time_t t = at.count() / 1000;
 					std::cout<<"storage::write - fail to create directories"<<std::endl;
 					std::cout<<'\t'<<dfile_name<<std::endl;
 					std::cout<<'\t'<<std::filesystem::path(dfile_name).parent_path()<<std::endl;
 					std::cout<<'\t'<<ec.message()<<std::endl;
+					std::cout<<asctime(gmtime(&t));
 					return false;
 				}
 				
@@ -311,10 +313,12 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 				std::filesystem::path(ifile_name).parent_path(), ec);
 			if(ec.value())
 			{
+				time_t t = at.count() / 1000;
 				std::cout<<"storage::write - fail to create directories"<<std::endl;
 				std::cout<<'\t'<<ifile_name<<std::endl;
 				std::cout<<'\t'<<std::filesystem::path(ifile_name).parent_path()<<std::endl;
 				std::cout<<'\t'<<ec.message()<<std::endl;
+				std::cout<<'\t'<<asctime(gmtime(&t));
 				return false;
 			}
 			ifile.open(ifile_name, mode);
