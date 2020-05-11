@@ -156,11 +156,16 @@ bool tape::aggregate_index(const std::string dir)
 	auto name_criterion = 
 		"^(\\d{4}-\\d{2}-\\d{2}@\\d{2}-\\d{2}-\\d{2})\\.index";
 	std::regex re(name_criterion);
-	if(!std::filesystem::exists(dir))
+	if(!std::filesystem::exists(std::filesystem::path(dir)))
 	{
-		if(!std::filesystem::create_directories(dir))
+		std::error_code ec;
+		std::filesystem::create_directories(std::filesystem::path(dir), ec);
+		if(ec.value())
 		{
-			std::cerr<<"Failed to create directory: "<<dir<<std::endl;
+			std::cerr<<"tape::aggregate_index - Failed to create directory"<<std::endl;
+			std::cerr<<'\t'<<dir<<std::endl;
+			std::cerr<<'\t'<<std::filesystem::path(dir).parent_path()<<std::endl;
+			std::cerr<<'\t'<<ec.value()<<std::endl;
 			return false;
 		}
 	}

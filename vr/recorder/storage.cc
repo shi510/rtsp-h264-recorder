@@ -226,8 +226,18 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 				std::string dfile_name = fname + ".data";
 				std::ios::openmode mode = std::ios::in | std::ios::out;
 				mode |= std::ios::binary | std::ios::app;
+				std::error_code ec;
 				std::filesystem::create_directories(
-					std::filesystem::path(dfile_name).parent_path());
+					std::filesystem::path(dfile_name).parent_path(), ec);
+				if(ec.value())
+				{
+					std::cout<<"storage::write - fail to create directories"<<std::endl;
+					std::cout<<'\t'<<dfile_name<<std::endl;
+					std::cout<<'\t'<<std::filesystem::path(dfile_name).parent_path()<<std::endl;
+					std::cout<<'\t'<<ec.message()<<std::endl;
+					return false;
+				}
+				
 				dfile.open(dfile_name, mode);
 				if(!dfile.is_open())
 				{
@@ -288,8 +298,17 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 			std::string ifile_name = fname + ".index";
 			std::ios::openmode mode = std::ios::in | std::ios::out;
 			mode |= std::ios::binary | std::ios::app;
+			std::error_code ec;
 			std::filesystem::create_directories(
-				std::filesystem::path(ifile_name).parent_path());
+				std::filesystem::path(ifile_name).parent_path(), ec);
+			if(ec.value())
+			{
+				std::cout<<"storage::write - fail to create directories"<<std::endl;
+				std::cout<<'\t'<<ifile_name<<std::endl;
+				std::cout<<'\t'<<std::filesystem::path(ifile_name).parent_path()<<std::endl;
+				std::cout<<'\t'<<ec.message()<<std::endl;
+				return false;
+			}
 			ifile.open(ifile_name, mode);
 			if(!ifile.is_open())
 			{
