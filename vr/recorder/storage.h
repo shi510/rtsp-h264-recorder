@@ -55,6 +55,8 @@ public:
 	};
 
 	class iterator;
+	
+	storage();
 
 	storage(std::string file_name);
 

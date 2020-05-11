@@ -6,6 +6,21 @@
 namespace vr
 {
 
+storage::storage(){}
+
+storage::storage(std::string file_name)
+{
+	fname = file_name;
+	if(!repair_if_corrupt(fname))
+	{
+		return;
+	}
+	if(!read_index_file(fname))
+	{
+		// can not open index file.
+	}
+}
+
 storage::~storage()
 {
 	close();
@@ -122,21 +137,9 @@ storage::iterator storage::end()
 	return it;
 }
 
-storage::storage(std::string file_name)
-{
-	fname = file_name;
-	if(!repair_if_corrupt(fname))
-	{
-		return;
-	}
-	if(!read_index_file(fname))
-	{
-		// can not open index file.
-	}
-}
-
 bool storage::read_index_file(std::string file)
 {
+	_TsKey last_ts = 0;
 	std::ios::openmode mode = std::ios::binary;
 	std::ifstream index_file(file + ".index", mode);
 	if(!index_file.is_open())
@@ -157,10 +160,27 @@ bool storage::read_index_file(std::string file)
 		{
 			break;
 		}
-		else if(index_file.fail())
+		if(!index_file.good())
 		{
 			std::cerr<<"storage::read_index_file() - index_file.fail()"<<std::endl;
+			std::cerr<<'\t'<<"index file rdstate: "<<index_file.rdstate()<<std::endl;
 			break;
+		}
+		if(ii.loc < 0)
+		{
+			std::cerr<<"storage::read_index_file() - ii.loc < 0"<<std::endl;
+			std::cout<<'\t'<<"gop file pointer: "<<ii.loc<<std::endl;
+			continue;
+		}
+		if(ii.ts < last_ts)
+		{
+			std::cout<<"storage::read_index_file() - ii.ts < last_ts"<<std::endl;
+			std::cout<<'\t'<<ii.ts<<", "<<last_ts<<std::endl;
+			continue;
+		}
+		else
+		{
+			last_ts = ii.ts;
 		}
 		_LocKey idx_key = make_index_key(ii.ts / 1000);
 		if(idxes.find(idx_key) != idxes.end())
@@ -192,21 +212,53 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 	_LocKey data_loc;
 	{
 		std::unique_lock<std::mutex> lock(dmtx);
-		if(!dfile.is_open())
+		int reopen_count = 0;
+		while(true)
 		{
-			std::string dfile_name = fname + ".data";
-			std::ios::openmode mode = std::ios::in | std::ios::out;
-			mode |= std::ios::binary | std::ios::app;
-			std::filesystem::create_directories(
-				std::filesystem::path(dfile_name).parent_path());
-			dfile.open(dfile_name, mode);
-			if(!dfile.is_open())
+			if(reopen_count > 2)
 			{
+				std::cout<<fname + ".data"<<std::endl;
+				std::cout<<'\t'<<"file reopened : "<<reopen_count<<std::endl;
 				return false;
 			}
+			if(!dfile.is_open())
+			{
+				std::string dfile_name = fname + ".data";
+				std::ios::openmode mode = std::ios::in | std::ios::out;
+				mode |= std::ios::binary | std::ios::app;
+				std::filesystem::create_directories(
+					std::filesystem::path(dfile_name).parent_path());
+				dfile.open(dfile_name, mode);
+				if(!dfile.is_open())
+				{
+					return false;
+				}
+			}
+			dfile.seekp(0, std::ios::end);
+			data_loc = static_cast<_LocKey>(dfile.tellp());
+			if(dfile.rdstate() & std::fstream::failbit)
+			{
+				std::cout<<"std::fstream::failbit"<<std::endl;
+				dfile.close();
+				reopen_count++;
+				continue;
+			}
+			else if(dfile.rdstate() & std::fstream::eofbit)
+			{
+				std::cout<<"std::fstream::eofbit"<<std::endl;
+				dfile.close();
+				reopen_count++;
+				continue;
+			}
+			else if(dfile.rdstate() & std::fstream::badbit)
+			{
+				std::cout<<"std::fstream::eofbit"<<std::endl;
+				dfile.close();
+				reopen_count++;
+				continue;
+			}
+			break;
 		}
-		dfile.seekp(0, std::ios::end);
-		data_loc = static_cast<_LocKey>(dfile.tellp());
 		dfile.write(
 			reinterpret_cast<char *>(&num_frames),
 			sizeof(size_t));
@@ -333,6 +385,12 @@ bool storage::repair_if_corrupt(std::string file_name)
 		index_file.read(
 			reinterpret_cast<char *>(&last_ts),
 			sizeof(_TsKey));
+		if(last_loc < 0)
+		{
+			std::cout<<file_name + ".index"<<std::endl;
+			std::cout<<'\t'<<"last_loc < 0 - "<<last_loc<<std::endl;
+			return false;
+		}
 		if(last_loc >= data_fsize)
 		{
 			index_file.close();
