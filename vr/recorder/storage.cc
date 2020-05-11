@@ -11,8 +11,16 @@ storage::storage(){}
 storage::storage(std::string file_name)
 {
 	fname = file_name;
+	if(fname.empty() || fname == "")
+	{
+		std::cerr<<"storage::storage - file name is empty."<<std::endl;
+		std::cerr<<"storage file name: "<<fname<<std::endl;
+		idxes.clear();
+		return;
+	}
 	if(!repair_if_corrupt(fname))
 	{
+		idxes.clear();
 		return;
 	}
 	if(!read_index_file(fname))
