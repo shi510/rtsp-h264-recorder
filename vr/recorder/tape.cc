@@ -1,4 +1,5 @@
 #include "vr/recorder/tape.h"
+#include "vr/utility/handy.h"
 #include <filesystem>
 #include <sstream>
 #include <regex>
@@ -7,6 +8,8 @@
 
 namespace vr
 {
+const std::string tape::FILE_NAME_REGEX =
+	"^(\\d{4}-\\d{2}-\\d{2}@\\d{2}-\\d{2}-\\d{2})\\.(index|data)";
 
 tape::~tape()
 {
@@ -18,15 +21,29 @@ bool tape::open(const std::string dir, option opt)
 	_root = dir;
 	__opt = opt;
 	restrict_option();
+	auto remove_list = get_old_files(_root, __opt.max_days);
+	auto failed_list = utility::remove_files(remove_list);
+	for(auto& fname : failed_list)
+	{
+		std::cerr<<"[VR] fail to remove these files:"<<std::endl;
+		std::cerr<<"    "<<fname<<std::endl;
+	}
+	
+	if(__opt.remove_previous)
+	{
+		auto strg_list = utility::get_matched_file_list(dir, FILE_NAME_REGEX);
+		for(auto& it : strg_list)
+		{
+			auto failed_list = utility::remove_files(it.second, _root);
+			std::for_each(it.second.begin(), it.second.end(),[](std::string f){
+					std::cerr<<"[VR] fail to remove: "<<f<<std::endl;
+			});
+		}
+	}
 	if(!aggregate_index(_root))
 	{
 		return false;
 	}
-	if(__opt.remove_previous)
-	{
-		return remove_all_files();
-	}
-	remove_oldest_storage();
 	__stop = false;
 	__write_worker = std::thread(
 		[this]()
@@ -94,7 +111,14 @@ bool tape::update_option(option opt)
 	restrict_option();
 	if(__opt.remove_previous)
 	{
-		return remove_all_files();
+		for(auto it : strgs)
+		{
+			if(!it.second->remove())
+			{
+				std::cerr<<"[VR] fail to remove "<<it.second->name()<<std::endl;
+			}
+		}
+		strgs.clear();
 	}
 	else
 	{
@@ -164,42 +188,32 @@ tape::iterator tape::end()
 
 bool tape::aggregate_index(const std::string dir)
 {
-	auto name_criterion = 
-		"^(\\d{4}-\\d{2}-\\d{2}@\\d{2}-\\d{2}-\\d{2})\\.index";
-	std::regex re(name_criterion);
-	if(!std::filesystem::exists(std::filesystem::path(dir)))
+	std::error_code ec;
+	if(!utility::create_directories(dir, ec))
 	{
-		std::error_code ec;
-		std::filesystem::create_directories(std::filesystem::path(dir), ec);
-		if(ec.value())
-		{
-			std::cerr<<"tape::aggregate_index - Failed to create directory"<<std::endl;
-			std::cerr<<'\t'<<dir<<std::endl;
-			std::cerr<<'\t'<<std::filesystem::path(dir).parent_path()<<std::endl;
-			std::cerr<<'\t'<<ec.value()<<std::endl;
-			return false;
-		}
+		std::cerr<<"[VR] tape::aggregate_index: Failed to create directories."<<std::endl;
+		std::cerr<<'\t'<<dir<<std::endl;
+		std::cerr<<'\t'<<std::filesystem::path(dir).parent_path()<<std::endl;
+		std::cerr<<'\t'<<"error code: "<<ec.value()<<", "<<ec.message()<<std::endl;
+		return false;
 	}
-	for(auto& p: std::filesystem::recursive_directory_iterator(dir))
+	auto strg_list = utility::get_matched_file_list(dir, FILE_NAME_REGEX);
+	for(auto& it : strg_list)
 	{
-		if(!p.is_directory())
+		if(it.second.size() == 2)
 		{
-			auto fname = p.path().filename().string();
-			std::cmatch cm;
-			if(std::regex_match(fname.c_str(), cm, re))
+			std::tm t;
+			strptime(it.first.c_str(), "%Y-%m-%d@%H-%M-%S", &t);
+			auto strg = create_storage(timegm(&t));
+			
+			if(strg->empty())
 			{
-				std::tm t;
-				strptime(cm[1].str().c_str(), "%Y-%m-%d@%H-%M-%S", &t);
-				auto strg = create_storage(timegm(&t));
-				if(strg->empty())
+				std::cerr<<"[VR] fail to read: "<<dir+"/"+it.first<<std::endl;
+				auto strg_key = make_storage_key(timegm(&t));
+				auto strg_it = strgs.find(strg_key);
+				if(strg_it != strgs.end())
 				{
-					std::cerr<<"Fail to read: "<<p.path().string()<<std::endl;
-					auto strg_key = make_storage_key(timegm(&t));
-					auto strg_it = strgs.find(strg_key);
-					if(strg_it != strgs.end())
-					{
-						strgs.erase(strg_it);
-					}
+					strgs.erase(strg_it);
 				}
 			}
 		}
@@ -312,18 +326,27 @@ std::string tape::make_file_name(const std::time_t time) const
 	return (p / ss.str()).string();
 }
 
-bool tape::remove_all_files()
+std::vector<std::string> tape::get_old_files(const std::string dir, const int day)
 {
-	for(auto it : strgs)
+	auto strg_list = utility::get_matched_file_list(dir, FILE_NAME_REGEX);
+	std::vector<std::string> old_list;
+	for(auto& it : strg_list)
 	{
-		if(!it.second->remove())
+		std::tm t;
+		strptime(it.first.c_str(), "%Y-%m-%d@%H-%M-%S", &t);
+		auto diff = std::time(nullptr) - timegm(&t);
+		t = *gmtime(&diff);
+		int passed_hours = t.tm_yday * 24 + t.tm_hour;
+		if(day * 24 - passed_hours <= 0)
 		{
-			std::cerr<<"Fail to remove "<<it.second->name()<<std::endl;
-			return false;
+			for(auto& f : it.second)
+			{
+				std::filesystem::path fullpath = dir;
+				old_list.push_back(fullpath / f);
+			}
 		}
 	}
-	strgs.clear();
-	return true;
+	return old_list;
 }
 
 void tape::restrict_option()

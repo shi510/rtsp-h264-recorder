@@ -3,6 +3,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <deque>
+#include <system_error>
 
 namespace utility
 {
@@ -56,6 +57,15 @@ private:
 	std::condition_variable __condition;
 	std::deque<T> __queue;
 };
+
+std::map<std::string, std::vector<std::string>>
+get_matched_file_list(const std::string dir, const std::string regex_str);
+
+bool create_directories(const std::string path, std::error_code& ec);
+
+// returns file name list failed to remove.
+std::vector<std::string>
+remove_files(const std::vector<std::string> files, const std::string root_dir = "");
 
 int get_utc_diff();
 

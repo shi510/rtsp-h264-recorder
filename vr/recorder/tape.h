@@ -20,6 +20,7 @@ public:
 
 	static constexpr int SYSTEM_BASE_YEAR = 1900;
 	static constexpr int BASE_YEAR = 2020;
+	static const std::string FILE_NAME_REGEX;
 
 	struct option
 	{
@@ -69,7 +70,7 @@ private:
 
 	std::string make_file_name(const std::time_t time) const;
 
-	bool remove_all_files();
+	std::vector<std::string> get_old_files(std::string dir, int yday);
 
 	void restrict_option();
 

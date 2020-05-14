@@ -170,21 +170,25 @@ bool storage::read_index_file(std::string file)
 		}
 		if(!index_file.good())
 		{
-			std::cerr<<"storage::read_index_file() - index_file.fail()"<<std::endl;
+			std::cerr<<"[VR] storage::read_index_file() - index_file.fail()"<<std::endl;
 			std::cerr<<'\t'<<"index file rdstate: "<<index_file.rdstate()<<std::endl;
+			idxes.clear();
+			return false;
 			break;
 		}
 		if(ii.loc < 0)
 		{
-			std::cerr<<"storage::read_index_file() - ii.loc < 0"<<std::endl;
-			std::cout<<'\t'<<"gop file pointer: "<<ii.loc<<std::endl;
-			continue;
+			std::cerr<<"[VR] storage::read_index_file() - ii.loc < 0"<<std::endl;
+			std::cerr<<'\t'<<"gop file pointer: "<<ii.loc<<std::endl;
+			idxes.clear();
+			return false;
 		}
 		if(ii.ts < last_ts)
 		{
-			std::cout<<"storage::read_index_file() - ii.ts < last_ts"<<std::endl;
-			std::cout<<'\t'<<ii.ts<<", "<<last_ts<<std::endl;
-			continue;
+			std::cerr<<"[VR] storage::read_index_file() - ii.ts < last_ts"<<std::endl;
+			std::cerr<<'\t'<<ii.ts<<", "<<last_ts<<std::endl;
+			idxes.clear();
+			return false;
 		}
 		else
 		{
@@ -211,7 +215,7 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 		_TsKey ts = std::prev(idxes.end())->second.ts;
 		if(ts > at.count())
 		{
-			std::cerr<<"storage::write() - Fail to write a frame - ";
+			std::cerr<<"[VR] storage::write() - Fail to write a frame - ";
 			std::cerr<<"got your time "<<at.count()<<", but less than "<<ts<<std::endl;
 			return false;
 		}
