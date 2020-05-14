@@ -4,6 +4,8 @@
 #include <condition_variable>
 #include <deque>
 #include <system_error>
+#include <string>
+#include <vector>
 
 namespace utility
 {

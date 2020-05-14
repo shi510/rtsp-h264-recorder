@@ -124,6 +124,7 @@ bool tape::update_option(option opt)
 	{
 		return remove_oldest_storage();
 	}
+	return true;
 }
 
 tape::option tape::get_option() const
