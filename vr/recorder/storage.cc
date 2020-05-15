@@ -210,7 +210,8 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 {
 	using namespace std::chrono;
 	size_t num_frames = data.size();
-	_TsKey cur_sys_time = system_clock::now().time_since_epoch().count() / 1000;
+	_TsKey cur_sys_time =
+		duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 	if(!idxes.empty() && __last_wtime != 0)
 	{
 		_TsKey last_ftime = std::prev(idxes.end())->second.ts;
