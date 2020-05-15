@@ -47,6 +47,8 @@ class storage
 
 	std::map<uint64_t, uint64_t> __timeline;
 
+	_TsKey __last_wtime;
+
 public:
 	struct frame_info
 	{

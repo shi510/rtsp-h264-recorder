@@ -9,8 +9,8 @@ namespace vr
 storage::storage(){}
 
 storage::storage(std::string file_name)
+	: fname(file_name), __last_wtime(0)
 {
-	fname = file_name;
 	if(fname.empty() || fname == "")
 	{
 		std::cerr<<"storage::storage - file name is empty."<<std::endl;
@@ -174,7 +174,6 @@ bool storage::read_index_file(std::string file)
 			std::cerr<<'\t'<<"index file rdstate: "<<index_file.rdstate()<<std::endl;
 			idxes.clear();
 			return false;
-			break;
 		}
 		if(ii.loc < 0)
 		{
@@ -209,17 +208,25 @@ bool storage::read_index_file(std::string file)
 
 bool storage::write(std::vector<frame_info> data, milliseconds at)
 {
+	using namespace std::chrono;
 	size_t num_frames = data.size();
-	if(!idxes.empty())
+	_TsKey cur_sys_time = system_clock::now().time_since_epoch().count() / 1000;
+	if(!idxes.empty() && __last_wtime != 0)
 	{
-		_TsKey ts = std::prev(idxes.end())->second.ts;
-		if(ts > at.count())
+		_TsKey last_ftime = std::prev(idxes.end())->second.ts;
+		auto diff_sys_time = cur_sys_time - __last_wtime;
+		auto diff_ftime = at.count() - last_ftime;
+		if(last_ftime > at.count() || diff_ftime > diff_sys_time + 5000)
 		{
-			std::cerr<<"[VR] storage::write() - Fail to write a frame - ";
-			std::cerr<<"got your time "<<at.count()<<", but less than "<<ts<<std::endl;
+			std::cerr<<"[VR] storage::write() - Fail to write a frame:"<<std::endl;
+			std::cerr<<"your frame time    : "<<at.count()<<std::endl;
+			std::cerr<<"recorded frame time: "<<last_ftime<<std::endl;
+			std::cerr<<"current system time: "<<cur_sys_time<<std::endl;
+			std::cerr<<"last system time   : "<<__last_wtime<<std::endl;
 			return false;
 		}
 	}
+	__last_wtime = cur_sys_time;
 	
 	_LocKey data_loc;
 	{

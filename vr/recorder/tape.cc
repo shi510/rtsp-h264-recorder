@@ -18,28 +18,31 @@ tape::~tape()
 
 bool tape::open(const std::string dir, option opt)
 {
+	std::vector<std::string> to_remove;
 	_root = dir;
 	__opt = opt;
 	restrict_option();
-	auto remove_list = get_old_files(_root, __opt.max_days);
-	auto failed_list = utility::remove_files(remove_list);
-	for(auto& fname : failed_list)
-	{
-		std::cerr<<"[VR] fail to remove these files:"<<std::endl;
-		std::cerr<<"    "<<fname<<std::endl;
-	}
-	
 	if(__opt.remove_previous)
 	{
-		auto strg_list = utility::get_matched_file_list(dir, FILE_NAME_REGEX);
-		for(auto& it : strg_list)
+		auto all_strgs = utility::get_matched_file_list(dir, FILE_NAME_REGEX);
+		for(auto& it : all_strgs)
 		{
-			auto failed_list = utility::remove_files(it.second, _root);
-			std::for_each(it.second.begin(), it.second.end(),[](std::string f){
-					std::cerr<<"[VR] fail to remove: "<<f<<std::endl;
-			});
+			to_remove.insert(to_remove.end(),
+				it.second.begin(), it.second.end());
 		}
 	}
+	else
+	{
+		auto old_files = get_old_files(_root, __opt.max_days);
+		to_remove.insert(to_remove.end(),
+			old_files.begin(), old_files.end());
+	}
+	auto failed = utility::remove_files(to_remove);
+	std::cerr<<"[VR] fail to remove files below:"<<std::endl;
+	std::for_each(failed.begin(), failed.end(),[](std::string s){
+			std::cerr<<"    "<<s<<std::endl;
+	});
+
 	if(!aggregate_index(_root))
 	{
 		return false;
