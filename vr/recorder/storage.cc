@@ -209,6 +209,7 @@ bool storage::read_index_file(std::string file)
 bool storage::write(std::vector<frame_info> data, milliseconds at)
 {
 	using namespace std::chrono;
+	constexpr int MINUTE = 60 * 1000; // as milliseconds
 	size_t num_frames = data.size();
 	_TsKey cur_sys_time =
 		duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
@@ -217,7 +218,7 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 		_TsKey last_ftime = std::prev(idxes.end())->second.ts;
 		auto diff_sys_time = cur_sys_time - __last_wtime;
 		auto diff_ftime = at.count() - last_ftime;
-		if(last_ftime > at.count() || diff_ftime > diff_sys_time + 5000)
+		if(last_ftime > at.count() || diff_ftime > diff_sys_time + 5*MINUTE)
 		{
 			std::cerr<<"[VR] storage::write() - Fail to write a frame:"<<std::endl;
 			std::cerr<<"File               : "<<fname<<std::endl;
