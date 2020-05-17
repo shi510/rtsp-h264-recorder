@@ -220,10 +220,18 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 		if(last_ftime > at.count() || diff_ftime > diff_sys_time + 5000)
 		{
 			std::cerr<<"[VR] storage::write() - Fail to write a frame:"<<std::endl;
-			std::cerr<<"your frame time    : "<<at.count()<<std::endl;
-			std::cerr<<"recorded frame time: "<<last_ftime<<std::endl;
-			std::cerr<<"current system time: "<<cur_sys_time<<std::endl;
-			std::cerr<<"last system time   : "<<__last_wtime<<std::endl;
+			std::cerr<<"File               : "<<fname<<std::endl;
+			std::cerr<<"your frame time    : "<<at.count()<<" ";
+			std::cerr<<utility::to_string(at.count())<<std::endl;
+			std::cerr<<"recorded frame time: "<<last_ftime<<" ";
+			std::cerr<<utility::to_string(last_ftime)<<std::endl;
+			std::cerr<<"diff above         : "<<diff_ftime<<std::endl;
+
+			std::cerr<<"current system time: "<<cur_sys_time<<" ";
+			std::cerr<<utility::to_string(cur_sys_time)<<std::endl;
+			std::cerr<<"last system time   : "<<__last_wtime<<" ";
+			std::cerr<<utility::to_string(__last_wtime)<<std::endl;
+			std::cerr<<"diff above         : "<<diff_sys_time<<std::endl;
 			return false;
 		}
 	}

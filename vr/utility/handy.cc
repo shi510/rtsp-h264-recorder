@@ -1,7 +1,9 @@
 #include "vr/utility/handy.h"
+#include <chrono>
 #include <filesystem>
 #include <ctime>
 #include <regex>
+#include <sstream>
 
 namespace utility
 {
@@ -68,6 +70,14 @@ remove_files(const std::vector<std::string> files, const std::string root_dir)
 		}
 	}
 	return fail_list;
+}
+
+std::string to_string(int64_t milliseconds_utc)
+{
+	std::stringstream ss;
+	std::time_t at_t = milliseconds_utc / 1000;
+	ss << std::put_time(std::localtime(&at_t), "%F %T");
+	return ss.str();
 }
 
 } // end namespace utility

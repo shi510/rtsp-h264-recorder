@@ -71,4 +71,6 @@ remove_files(const std::vector<std::string> files, const std::string root_dir = 
 
 int get_utc_diff();
 
+std::string to_string(int64_t milliseconds_utc);
+
 } // namespace utility
