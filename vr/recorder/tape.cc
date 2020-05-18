@@ -38,10 +38,14 @@ bool tape::open(const std::string dir, option opt)
 			old_files.begin(), old_files.end());
 	}
 	auto failed = utility::remove_files(to_remove);
-	std::cerr<<"[VR] fail to remove files below:"<<std::endl;
-	std::for_each(failed.begin(), failed.end(),[](std::string s){
-			std::cerr<<"    "<<s<<std::endl;
-	});
+	if(!failed.empty())
+	{
+		std::cerr<<"[VR] fail to remove files below:"<<std::endl;
+		std::for_each(failed.begin(), failed.end(),[](std::string s){
+				std::cerr<<"    "<<s<<std::endl;
+		});
+	}
+
 
 	if(!aggregate_index(_root))
 	{

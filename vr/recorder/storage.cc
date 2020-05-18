@@ -201,6 +201,7 @@ bool storage::read_index_file(std::string file)
 		}
 		idxes[idx_key] = ii;
 		update_timeline(std::chrono::milliseconds(ii.ts));
+		__last_wtime = ii.ts;
 	}
 	index_file.close();
 	return true;
