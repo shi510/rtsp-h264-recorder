@@ -31,6 +31,8 @@ storage::storage(std::string file_name)
 
 storage::~storage()
 {
+	std::cerr<<"[VR] storage::~storage()"<<std::endl;
+	std::cerr<<"\t file: "<<fname<<std::endl;
 	close();
 }
 
