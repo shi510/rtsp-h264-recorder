@@ -274,6 +274,9 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 				{
 					return false;
 				}
+				std::cerr<<"[VR] storage::write - reopen storage: "<<fname<<std::endl;
+				std::cerr<<"your frame time    : "<<at.count()<<" ";
+				std::cerr<<utility::to_string(at.count())<<std::endl;
 			}
 			dfile.seekp(0, std::ios::end);
 			data_loc = static_cast<_LocKey>(dfile.tellp());

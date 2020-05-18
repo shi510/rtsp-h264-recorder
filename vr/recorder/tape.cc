@@ -69,6 +69,8 @@ bool tape::open(const std::string dir, option opt)
 				std::shared_ptr<storage> strg = find_storage(sec);
 				if(!strg)
 				{
+					std::cerr<<"[VR] tape::write_worker() create new storage: "<<make_storage_key(sec)<<std::endl;
+					std::cerr<<"\t"<<utility::to_string(chk.at.count())<<std::endl;
 					strg = create_storage(sec);
 					if(!remove_oldest_storage())
 					{
