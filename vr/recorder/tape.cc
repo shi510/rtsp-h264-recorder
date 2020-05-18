@@ -73,8 +73,11 @@ bool tape::open(const std::string dir, option opt)
 				std::shared_ptr<storage> strg = find_storage(sec);
 				if(!strg)
 				{
+					auto try_key = make_storage_key(sec);
 					std::cerr<<"[VR] tape::write_worker() create new storage: "<<_root<<std::endl;
-					std::cerr<<"\t storage key: "<<make_storage_key(sec)<<std::endl;
+					std::cerr<<"\t storage key: "<<try_key<<std::endl;
+					std::cerr<<"\t storage key: "<<strgs.count(try_key)<<std::endl;
+					std::cerr<<"\t storage key: "<<(strgs.find(try_key) == strgs.end())<<std::endl;
 					std::cerr<<"\t time       : "<<utility::to_string(chk.at.count())<<std::endl;
 					std::cerr<<"\t loaded storage keys: "<<std::endl;
 					for(auto& it : strgs)
