@@ -23,6 +23,10 @@ get_matched_file_list(const std::string dir, const std::string regex_str)
 {
 	std::map<std::string, std::vector<std::string>> list;
 	std::regex re(regex_str);
+	if(!std::filesystem::exists(dir))
+	{
+		return list;
+	}
 	for(auto& p: std::filesystem::recursive_directory_iterator(dir))
 	{
 		if(!p.is_directory())
