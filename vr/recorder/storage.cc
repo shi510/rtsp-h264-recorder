@@ -31,8 +31,6 @@ storage::storage(std::string file_name)
 
 storage::~storage()
 {
-	std::cerr<<"[VR] storage::~storage()"<<std::endl;
-	std::cerr<<"\t file: "<<fname<<std::endl;
 	close();
 }
 
@@ -187,14 +185,11 @@ bool storage::read_index_file(std::string file)
 		if(ii.ts < last_ts)
 		{
 			std::cerr<<"[VR] storage::read_index_file() - ii.ts < last_ts"<<std::endl;
-			std::cerr<<'\t'<<ii.ts<<", "<<last_ts<<std::endl;
-			idxes.clear();
-			return false;
+			std::cerr<<'\t'<<fname<<std::endl;
+			std::cerr<<"\t Skip current GoP."<<ii.ts<<", "<<last_ts<<std::endl;
+			continue;
 		}
-		else
-		{
-			last_ts = ii.ts;
-		}
+		last_ts = ii.ts;
 		_LocKey idx_key = make_index_key(ii.ts / 1000);
 		if(idxes.find(idx_key) != idxes.end())
 		{
@@ -368,7 +363,12 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 
 storage::_IdxKey storage::make_index_key(const std::time_t time) const
 {
-	auto t = *gmtime(&time);
+	std::tm t;
+	//auto t = *gmtime(&time);
+	auto ptr = gmtime_r(&time, &t);
+	if(!ptr){
+		std::cerr<<"[VR] storage::make_index_key: gmtime_r(&time, &t)"<<std::endl;
+	}
 	return t.tm_min * 1e2 + t.tm_sec;
 }
 

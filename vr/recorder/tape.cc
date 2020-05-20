@@ -78,6 +78,8 @@ bool tape::open(const std::string dir, option opt)
 					std::cerr<<"\t storage key: "<<try_key<<std::endl;
 					std::cerr<<"\t storage key: "<<strgs.count(try_key)<<std::endl;
 					std::cerr<<"\t storage key: "<<(strgs.find(try_key) == strgs.end())<<std::endl;
+					std::cerr<<"\t storage key: "<<strg<<std::endl;
+					std::cerr<<"\t storage key: "<<strg.get()<<std::endl;
 					std::cerr<<"\t time       : "<<utility::to_string(chk.at.count())<<std::endl;
 					std::cerr<<"\t loaded storage keys: "<<std::endl;
 					for(auto& it : strgs)
@@ -275,7 +277,12 @@ std::vector<std::pair<uint64_t, uint64_t>> tape::merge_timeline(
 
 tape::_StrgKey tape::make_storage_key(const std::time_t time) const
 {
-	auto t = *gmtime(&time);
+	std::tm t;
+	//auto t = *gmtime(&time);
+	auto ptr = gmtime_r(&time, &t);
+	if(!ptr){
+		std::cerr<<"[VR] tape::make_storage_key: gmtime_r(&time, &t)"<<std::endl;
+	}
 	return (t.tm_year - (tape::BASE_YEAR - SYSTEM_BASE_YEAR)) * 1e5 +
 		t.tm_yday * 1e2 +
 		t.tm_hour;
@@ -287,7 +294,20 @@ std::shared_ptr<storage> tape::find_storage(const std::time_t time)
 	auto strg_it = strgs.find(strg_key);
 	if(strg_it == strgs.end())
 	{
+		std::cerr<<"[VR] tape::find_storage: strg_it == strgs.end()"<<std::endl;
+		std::cerr<<"\t "<<_root<<std::endl;
+		std::cerr<<"\t "<<utility::to_string(time*1000)<<std::endl;
+		std::cerr<<"\t "<<time<<std::endl;
+		std::cerr<<"\t "<<strg_key<<std::endl;
 		return nullptr;
+	}
+	if(!strg_it->second)
+	{
+		std::cerr<<"[VR] tape::find_storage: found but nullptr"<<std::endl;
+		std::cerr<<"\t "<<_root<<std::endl;
+		std::cerr<<"\t "<<utility::to_string(time*1000)<<std::endl;
+		std::cerr<<"\t "<<time<<std::endl;
+		std::cerr<<"\t "<<strg_key<<std::endl;
 	}
 	return strg_it->second;
 }
@@ -297,6 +317,11 @@ std::shared_ptr<storage> tape::create_storage(const std::time_t time)
 	auto strg_key = make_storage_key(time);
 	if(strg_key < 0){return std::make_shared<storage>();}
 	auto strg = std::make_shared<storage>(make_file_name(time));
+	if(!strg)
+	{
+		std::cerr<<"[VR] storage is created but pointer is "<<strg.get()<<std::endl;
+		std::cerr<<"\t"<<make_file_name(time)<<std::endl;
+	}
 	strgs[strg_key] = strg;
 	return strg;
 }
