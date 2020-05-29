@@ -74,18 +74,6 @@ bool tape::open(const std::string dir, option opt)
 				if(!strg)
 				{
 					auto try_key = make_storage_key(sec);
-					std::cerr<<"[VR] tape::write_worker() create new storage: "<<_root<<std::endl;
-					std::cerr<<"\t storage key: "<<try_key<<std::endl;
-					std::cerr<<"\t storage key: "<<strgs.count(try_key)<<std::endl;
-					std::cerr<<"\t storage key: "<<(strgs.find(try_key) == strgs.end())<<std::endl;
-					std::cerr<<"\t storage key: "<<strg<<std::endl;
-					std::cerr<<"\t storage key: "<<strg.get()<<std::endl;
-					std::cerr<<"\t time       : "<<utility::to_string(chk.at.count())<<std::endl;
-					std::cerr<<"\t loaded storage keys: "<<std::endl;
-					for(auto& it : strgs)
-					{
-						std::cerr<<"\t\t"<<it.first<<std::endl;
-					}
 					strg = create_storage(sec);
 					if(!remove_oldest_storage())
 					{
@@ -294,20 +282,7 @@ std::shared_ptr<storage> tape::find_storage(const std::time_t time)
 	auto strg_it = strgs.find(strg_key);
 	if(strg_it == strgs.end())
 	{
-		std::cerr<<"[VR] tape::find_storage: strg_it == strgs.end()"<<std::endl;
-		std::cerr<<"\t "<<_root<<std::endl;
-		std::cerr<<"\t "<<utility::to_string(time*1000)<<std::endl;
-		std::cerr<<"\t "<<time<<std::endl;
-		std::cerr<<"\t "<<strg_key<<std::endl;
 		return nullptr;
-	}
-	if(!strg_it->second)
-	{
-		std::cerr<<"[VR] tape::find_storage: found but nullptr"<<std::endl;
-		std::cerr<<"\t "<<_root<<std::endl;
-		std::cerr<<"\t "<<utility::to_string(time*1000)<<std::endl;
-		std::cerr<<"\t "<<time<<std::endl;
-		std::cerr<<"\t "<<strg_key<<std::endl;
 	}
 	return strg_it->second;
 }
@@ -317,11 +292,6 @@ std::shared_ptr<storage> tape::create_storage(const std::time_t time)
 	auto strg_key = make_storage_key(time);
 	if(strg_key < 0){return std::make_shared<storage>();}
 	auto strg = std::make_shared<storage>(make_file_name(time));
-	if(!strg)
-	{
-		std::cerr<<"[VR] storage is created but pointer is "<<strg.get()<<std::endl;
-		std::cerr<<"\t"<<make_file_name(time)<<std::endl;
-	}
 	strgs[strg_key] = strg;
 	return strg;
 }
