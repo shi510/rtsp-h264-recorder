@@ -8,6 +8,7 @@
 #include <thread>
 #include <chrono>
 #include <regex>
+#include <algorithm>
 
 int main(int argc, char* argv[])
 {
@@ -103,7 +104,7 @@ int main(int argc, char* argv[])
 							break;
 						fi = *tp_iter;
 						auto interval = (fi.msec - ftime).count();
-						interval = std::min(std::max(interval, 0ll), 200ll);
+						interval = std::min(std::max((long long)interval, 0ll), 200ll);
 						std::this_thread::sleep_for(ms(interval));
 						
 					}
@@ -139,14 +140,14 @@ int main(int argc, char* argv[])
 			auto tl = tp->recent_timeline();
 			std::string to;
 			std::string from;
-			auto tt = time_t(tl.first / 1000);
+			auto tt = time_t(tl->first / 1000);
 			auto ct = ctime(&tt);
 			auto len = strlen(ct);
 			from.resize(len);
 			std::copy(ct, ct + len, from.begin());
 			from.erase(from.end()-1);
 
-			tt = time_t(tl.second / 1000);
+			tt = time_t(tl->second / 1000);
 			ct = ctime(&tt);
 			len = strlen(ct);
 			to.resize(len);
