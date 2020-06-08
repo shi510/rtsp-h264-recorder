@@ -85,7 +85,12 @@ bool tape::open(const std::string dir, option opt)
 					if(strg->name() == "")
 					{
 						std::cout<<"tape::write_worker - storage name is empty"<<std::endl;
-						std::cout<<'\t'<<asctime(gmtime(&sec));
+						std::tm t;
+						auto ptr = gmtime_r(&sec, &t);
+						if(!ptr){
+							std::cerr<<"[VR] tape::get_old_files: gmtime_r(&time, &t)"<<std::endl;
+						}
+						std::cout<<'\t'<<asctime(&t);
 					}
 					else
 					{
@@ -330,7 +335,12 @@ std::string tape::make_file_name(const std::time_t time) const
 {
 	std::filesystem::path p = _root;
 	std::stringstream ss;
-	auto t = *gmtime(&time);
+//	auto t = *gmtime(&time);
+	std::tm t;
+	auto ptr = gmtime_r(&time, &t);
+	if(!ptr){
+		std::cerr<<"[VR] tape::make_file_name: gmtime_r(&time, &t)"<<std::endl;
+	}
 	ss<<std::setw(4)<<std::setfill('0')<<t.tm_year + SYSTEM_BASE_YEAR<<"-";
 	ss<<std::setw(2)<<std::setfill('0')<<t.tm_mon + 1<<"-";
 	ss<<std::setw(2)<<std::setfill('0')<<t.tm_mday<<"@";
@@ -349,7 +359,11 @@ std::vector<std::string> tape::get_old_files(const std::string dir, const int da
 		std::tm t;
 		strptime(it.first.c_str(), "%Y-%m-%d@%H-%M-%S", &t);
 		auto diff = std::time(nullptr) - timegm(&t);
-		t = *gmtime(&diff);
+//		t = *gmtime(&diff);
+		auto ptr = gmtime_r(&diff, &t);
+		if(!ptr){
+			std::cerr<<"[VR] tape::get_old_files: gmtime_r(&time, &t)"<<std::endl;
+		}
 		int passed_hours = t.tm_yday * 24 + t.tm_hour;
 		if(day * 24 - passed_hours <= 0)
 		{
