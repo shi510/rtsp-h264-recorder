@@ -18,11 +18,13 @@ storage::storage(std::string file_name)
 		idxes.clear();
 		return;
 	}
+	/*	
 	if(!repair_if_corrupt(fname))
 	{
 		idxes.clear();
 		return;
 	}
+	*/
 	if(!read_index_file(fname))
 	{
 		// can not open index file.
@@ -147,62 +149,53 @@ storage::iterator storage::end()
 
 bool storage::read_index_file(std::string file)
 {
+	std::vector<char> fdata;
 	_TsKey last_ts = 0;
 	std::ios::openmode mode = std::ios::binary;
 	std::ifstream index_file(file + ".index", mode);
-	if(!index_file.is_open())
+	if(!index_file.is_open() || !index_file.good()){
+		std::cerr<<"[VR] storage::read_index_file() - index_file.fail()"<<std::endl;
+		std::cerr<<'\t'<<"index file rdstate: "<<index_file.rdstate()<<std::endl;
+		idxes.clear();
 		return false;
+	}
+	index_file.seekg(0, std::ios::end);
+	auto file_size = static_cast<int64_t>(index_file.tellg());
+	if(file_size <= 0){
+		return false;
+	}
+	fdata.resize(file_size);
 	index_file.seekg(std::ios::beg);
-	while(true)
+	index_file.read(fdata.data(), file_size);
+	index_file.close();
+	if(file_size % (sizeof(_LocKey) + sizeof(_TsKey)) != 0){
+		std::cout<<"file_size % (sizeof(_LocKey) + sizeof(_TsKey)) : ";
+		std::cout<<file_size % (sizeof(_LocKey) + sizeof(_TsKey))<<std::endl;
+	}
+	for(int n = 0; n < file_size; n+=sizeof(int64_t)*2)
 	{
+		auto ptr = reinterpret_cast<int64_t *>(fdata.data() + n);
 		index_info ii;
-		index_file.read(
-			reinterpret_cast<char *>(&ii.loc),
-			sizeof(_LocKey)
-		);
-		index_file.read(
-			reinterpret_cast<char *>(&ii.ts),
-			sizeof(_TsKey)
-		);
-		if(index_file.eof())
-		{
-			break;
-		}
-		if(!index_file.good())
-		{
-			std::cerr<<"[VR] storage::read_index_file() - index_file.fail()"<<std::endl;
-			std::cerr<<'\t'<<"index file rdstate: "<<index_file.rdstate()<<std::endl;
-			idxes.clear();
-			return false;
-		}
-		if(ii.loc < 0)
-		{
-			std::cerr<<"[VR] storage::read_index_file() - ii.loc < 0"<<std::endl;
-			std::cerr<<'\t'<<"gop file pointer: "<<ii.loc<<std::endl;
-			idxes.clear();
-			return false;
-		}
+		ii.loc = *(ptr);
+		ii.ts = *(ptr + 1);
 		if(ii.ts < last_ts)
 		{
-			std::cerr<<"[VR] storage::read_index_file() - ii.ts < last_ts"<<std::endl;
-			std::cerr<<'\t'<<fname<<std::endl;
-			std::cerr<<"\t Skip current GoP."<<ii.ts<<", "<<last_ts<<std::endl;
+			//std::cerr<<"[VR] storage::read_index_file() - ii.ts < last_ts"<<std::endl;
+			//std::cerr<<'\t'<<fname<<std::endl;
+			//std::cerr<<"\t Skip current GoP.";
+			//std::cerr<<utility::to_string(ii.ts)<<", ";
+			//std::cerr<<utility::to_string(last_ts)<<std::endl;
 			continue;
 		}
 		last_ts = ii.ts;
 		_LocKey idx_key = make_index_key(ii.ts / 1000);
-		if(idxes.find(idx_key) != idxes.end())
-		{
-			// std::cout<<"Warning: gop already exists at ";
-			// std::cout<<idx_key<<std::endl;
-		}
 		idxes[idx_key] = ii;
 		update_timeline(std::chrono::milliseconds(ii.ts));
 		__last_wtime = ii.ts;
 	}
-	index_file.close();
 	return true;
 }
+
 
 bool storage::write(std::vector<frame_info> data, milliseconds at)
 {
@@ -244,8 +237,8 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 		{
 			if(reopen_count > 2)
 			{
-				std::cout<<fname + ".data"<<std::endl;
-				std::cout<<'\t'<<"file reopened : "<<reopen_count<<std::endl;
+				//std::cout<<fname + ".data"<<std::endl;
+				//std::cout<<'\t'<<"file reopened : "<<reopen_count<<std::endl;
 				return false;
 			}
 			if(!dfile.is_open())
@@ -272,29 +265,29 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 				{
 					return false;
 				}
-				std::cerr<<"[VR] storage::write - reopen storage: "<<fname<<std::endl;
-				std::cerr<<"your frame time    : "<<at.count()<<" ";
-				std::cerr<<utility::to_string(at.count())<<std::endl;
+				//std::cerr<<"[VR] storage::write - reopen storage: "<<fname<<std::endl;
+				//std::cerr<<"your frame time    : "<<at.count()<<" ";
+				//std::cerr<<utility::to_string(at.count())<<std::endl;
 			}
 			dfile.seekp(0, std::ios::end);
 			data_loc = static_cast<_LocKey>(dfile.tellp());
 			if(dfile.rdstate() & std::fstream::failbit)
 			{
-				std::cout<<"std::fstream::failbit"<<std::endl;
+				std::cout<<"std::fstream::failbit: "<<fname<<std::endl;
 				dfile.close();
 				reopen_count++;
 				continue;
 			}
 			else if(dfile.rdstate() & std::fstream::eofbit)
 			{
-				std::cout<<"std::fstream::eofbit"<<std::endl;
+				std::cout<<"std::fstream::eofbit: "<<fname<<std::endl;
 				dfile.close();
 				reopen_count++;
 				continue;
 			}
 			else if(dfile.rdstate() & std::fstream::badbit)
 			{
-				std::cout<<"std::fstream::eofbit"<<std::endl;
+				std::cout<<"std::fstream::eofbit: "<<fname<<std::endl;
 				dfile.close();
 				reopen_count++;
 				continue;
@@ -445,8 +438,8 @@ bool storage::repair_if_corrupt(std::string file_name)
 			sizeof(_TsKey));
 		if(last_loc < 0)
 		{
-			std::cout<<file_name + ".index"<<std::endl;
-			std::cout<<'\t'<<"last_loc < 0 - "<<last_loc<<std::endl;
+			//std::cout<<file_name + ".index"<<std::endl;
+			//std::cout<<'\t'<<"last_loc < 0 - "<<last_loc<<std::endl;
 			return false;
 		}
 		if(last_loc >= data_fsize)
@@ -465,9 +458,9 @@ bool storage::repair_if_corrupt(std::string file_name)
 				sizeof(size_t));
 			if(num_frames > 100)
 			{
-				std::cerr<<file_name + ".data"<<std::endl;
-				std::cerr<<"    GOP is too large: "<<num_frames<<std::endl;
-				std::cerr<<"    renounce to repair"<<std::endl;
+				//std::cerr<<file_name + ".data"<<std::endl;
+				//std::cerr<<"    GOP is too large: "<<num_frames<<std::endl;
+				//std::cerr<<"    renounce to repair"<<std::endl;
 				return false;
 			}
 			uint64_t total_len = sizeof(size_t);
@@ -574,6 +567,9 @@ std::vector<storage::frame_info> storage::reader::operator()(index_info ii)
 			reinterpret_cast<char *>(&tl),
 			sizeof(uint64_t)
 		);
+		if(len <= 0 || len >= dfile_size){
+			return std::vector<frame_info>();
+		}
 		fr.resize(len);
 		dfile->read(
 			reinterpret_cast<char *>(fr.data()),

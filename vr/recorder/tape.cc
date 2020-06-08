@@ -310,13 +310,18 @@ bool tape::remove_oldest_storage()
 		auto day_diff = recent_strg_it->first - oldest_strg_it->first;
 		if(day_diff >= __opt.max_days * 100)
 		{
-			std::cerr<<"Trying delete..."<<std::endl;
-			std::cerr<<"    oldest day : "<<oldest_strg_it->first<<std::endl;
-			std::cerr<<"    recent day : "<<recent_strg_it->first<<std::endl;
-			std::cerr<<"    diff       : "<<day_diff<<std::endl;
-			std::cerr<<"    max days   : "<<__opt.max_days * 100<<std::endl;
+			//std::cerr<<"Trying delete..."<<std::endl;
+			//std::cerr<<"    oldest day : "<<oldest_strg_it->first<<std::endl;
+			//std::cerr<<"    recent day : "<<recent_strg_it->first<<std::endl;
+			//std::cerr<<"    diff       : "<<day_diff<<std::endl;
+			//std::cerr<<"    max days   : "<<__opt.max_days * 100<<std::endl;
 			if(!oldest_strg_it->second->remove())
 			{
+				std::cerr<<"Trying delete..."<<std::endl;
+				std::cerr<<"    oldest day : "<<oldest_strg_it->first<<std::endl;
+				std::cerr<<"    recent day : "<<recent_strg_it->first<<std::endl;
+				std::cerr<<"    diff       : "<<day_diff<<std::endl;
+				std::cerr<<"    max days   : "<<__opt.max_days * 100<<std::endl;
 				std::cerr<<"    Fail to remove the oldest storage: ";
 				std::cerr<<oldest_strg_it->second->name()<<std::endl;
 			}
