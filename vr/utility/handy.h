@@ -10,6 +10,48 @@
 namespace utility
 {
 
+class byte_buffer
+{
+	size_t __size;
+	std::vector<char> __buf;
+	
+public:
+	typedef byte_buffer this_type;
+	
+	template <typename T,
+		typename = std::enable_if_t<std::is_fundamental<T>::value>
+	>
+	this_type& operator<<(T& val){
+		char* ptr = reinterpret_cast<char*>(&val);
+		for(int i = 0; i < sizeof(T); ++i){
+			__buf.push_back(*(ptr + i));
+		}
+		return *this;
+	}
+
+	template <typename T,
+		typename = std::enable_if_t<std::is_fundamental<T>::value>
+	>
+	this_type& operator<<(std::vector<T> vec){
+		for(int n = 0; n < vec.size(); ++n){
+			auto& val = vec[n];
+			char* ptr = reinterpret_cast<char*>(&val);
+			for(int i = 0; i < sizeof(T); ++i){
+				__buf.push_back(*(ptr + i));
+			}
+		}
+		return *this;
+	}
+	
+	char* data(){
+		return __buf.data();
+	}
+	
+	size_t size(){
+		return __buf.size();
+	}
+};
+
 template <typename T1, typename T2>
 T1 find_closest_key(const std::map<T1, T2> & data, T1 key)
 {

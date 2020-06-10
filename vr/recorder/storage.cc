@@ -294,6 +294,17 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 			}
 			break;
 		}
+		utility::byte_buffer bb;
+		bb<<num_frames;
+		for(auto& frame : data){
+			_LocKey len = frame.data.size();
+			uint64_t tl = frame.msec.count();
+			bb<<len;
+			bb<<tl;
+			bb<<frame.data;
+		}
+		dfile.write(bb.data(), bb.size());
+		/*
 		dfile.write(
 			reinterpret_cast<char *>(&num_frames),
 			sizeof(size_t));
@@ -311,6 +322,7 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 				reinterpret_cast<char *>(frame.data.data()),
 				len);
 		}
+		*/
 	}
 	// write group of picture to data file.
 	{
@@ -343,12 +355,18 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 			}
 		}
 		ifile.seekp(0, std::ios::end);
+		utility::byte_buffer bb;
+		bb<<data_loc;
+		bb<<ts;
+		ifile.write(bb.data(), bb.size());
+		/*
 		ifile.write(
 			reinterpret_cast<char *>(&data_loc),
 			sizeof(_LocKey));
 		ifile.write(
 			reinterpret_cast<char *>(&ts),
 			sizeof(_TsKey));
+		*/
 		idxes[idx_key] = index_info{data_loc, at.count()};
 	}
 	return true;
