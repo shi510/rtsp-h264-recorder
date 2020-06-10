@@ -18,6 +18,9 @@ storage::storage(std::string file_name)
 		idxes.clear();
 		return;
 	}
+	if(!std::filesystem::exists(fname + ".index")){
+		return;
+	}
 	/*	
 	if(!repair_if_corrupt(fname))
 	{
