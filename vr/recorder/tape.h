@@ -133,4 +133,22 @@ public:
 	bool operator!=(const this_type& it) const;
 };
 
+class tape_pool
+{
+	std::string __root_dir;
+	std::map<std::string, std::shared_ptr<vr::tape>> __tps;
+
+public:
+	tape_pool(std::string root_dir, vr::tape::option glob_opt);
+
+	std::shared_ptr<vr::tape> create(std::string tp_key, vr::tape::option opt);
+
+	std::shared_ptr<vr::tape> find(std::string tp_key);
+
+	~tape_pool();
+
+	void close();
+};
+
+
 } // end namespace vr

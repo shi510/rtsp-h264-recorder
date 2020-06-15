@@ -449,4 +449,55 @@ bool tape::iterator::operator!=(const this_type& it) const
 	return __iter != it.__iter;
 }
 
+tape_pool::tape_pool(std::string root_dir, vr::tape::option glob_opt)
+{
+	using namespace std::filesystem;
+	__root_dir = root_dir;
+	for(auto& p: directory_iterator(root_dir))
+	{
+		if(p.is_directory())
+		{
+			auto fname = p.path().filename().string();
+			std::cout<<fname<<std::endl;
+			auto tp = std::make_shared<vr::tape>();
+			tp->open(p.path().string(), glob_opt);
+			__tps[fname] = tp;
+		}
+	}
+}
+
+std::shared_ptr<vr::tape> tape_pool::create(std::string tp_key, vr::tape::option opt)
+{
+	auto tp = std::make_shared<vr::tape>();
+	std::string name = __root_dir + "/" + tp_key;
+	if(!tp->open(name, opt))
+	{
+		tp->close();
+		return nullptr;
+	}
+	__tps[tp_key] = tp;
+	return tp;
+}
+
+std::shared_ptr<vr::tape> tape_pool::find(std::string tp_key)
+{
+	auto it = __tps.find(tp_key);
+	if(it == __tps.end()){
+		return nullptr;
+	}
+	return it->second;
+}
+
+tape_pool::~tape_pool()
+{
+	close();
+}
+
+void tape_pool::close()
+{
+	for(auto& it : __tps){
+		it.second->close();
+	}
+}
+
 } // end namespace vr
