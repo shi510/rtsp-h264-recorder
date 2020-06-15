@@ -76,7 +76,7 @@ public:
 
 	bool empty() const;
 
-	bool write(std::vector<frame_info> data, milliseconds at);
+	bool write(const std::vector<frame_info>& data, const milliseconds at);
 
 	iterator find(std::time_t at);
 

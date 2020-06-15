@@ -21,8 +21,8 @@ public:
 	template <typename T,
 		typename = std::enable_if_t<std::is_fundamental<T>::value>
 	>
-	this_type& operator<<(T& val){
-		char* ptr = reinterpret_cast<char*>(&val);
+	this_type& operator<<(const T& val){
+		auto ptr = reinterpret_cast<const char*>(&val);
 		for(int i = 0; i < sizeof(T); ++i){
 			__buf.push_back(*(ptr + i));
 		}
@@ -32,10 +32,10 @@ public:
 	template <typename T,
 		typename = std::enable_if_t<std::is_fundamental<T>::value>
 	>
-	this_type& operator<<(std::vector<T> vec){
+	this_type& operator<<(const std::vector<T>& vec){
 		for(int n = 0; n < vec.size(); ++n){
 			auto& val = vec[n];
-			char* ptr = reinterpret_cast<char*>(&val);
+			auto ptr = reinterpret_cast<const char*>(&val);
 			for(int i = 0; i < sizeof(T); ++i){
 				__buf.push_back(*(ptr + i));
 			}

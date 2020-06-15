@@ -200,7 +200,7 @@ bool storage::read_index_file(std::string file)
 }
 
 
-bool storage::write(std::vector<frame_info> data, milliseconds at)
+bool storage::write(const std::vector<frame_info>& data, const milliseconds at)
 {
 	using namespace std::chrono;
 	constexpr int MINUTE = 60 * 1000; // as milliseconds
@@ -333,8 +333,9 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 		_TsKey ts = at.count();
 		_IdxKey idx_key = make_index_key(ts / 1000);
 		update_timeline(at);
-		if(!ifile.is_open())
+		if(!ifile.is_open() || !ifile.good())
 		{
+			if(ifile.is_open()) ifile.close();
 			std::string ifile_name = fname + ".index";
 			std::ios::openmode mode = std::ios::in | std::ios::out;
 			mode |= std::ios::binary | std::ios::app;
@@ -352,16 +353,42 @@ bool storage::write(std::vector<frame_info> data, milliseconds at)
 				return false;
 			}
 			ifile.open(ifile_name, mode);
-			if(!ifile.is_open())
+			if(!ifile.is_open() || !ifile.good())
 			{
+				if(ifile.is_open()) ifile.close();
+				std::cerr<<"[storage::write] !ifile.is_open() || !ifile.good()"<<std::endl;
+				std::cerr<<"\t"<<fname<<std::endl;
+				std::cerr<<"\t"<<"failbit: "<<ifile.fail()<<std::endl;
+				std::cerr<<"\t"<<"eofbit: "<<ifile.eof()<<std::endl;
+				std::cerr<<"\t"<<"badbit: "<<ifile.bad()<<std::endl;
+				std::cerr<<"\t"<<"is_open: "<<ifile.is_open()<<std::endl;
 				return false;
 			}
 		}
 		ifile.seekp(0, std::ios::end);
+		auto before_loc = ifile.tellp();
 		utility::byte_buffer bb;
 		bb<<data_loc;
 		bb<<ts;
 		ifile.write(bb.data(), bb.size());
+		auto after_loc = ifile.tellp();
+		auto diff_loc = size_t(after_loc - before_loc);
+		if(diff_loc != bb.size()){
+			std::cerr<<"[storage::write] file size is not changed after writing"<<std::endl;
+			std::cerr<<"\t"<<fname<<std::endl;
+			std::cerr<<"\t"<<"before loc: "<<size_t(before_loc)<<std::endl;
+			std::cerr<<"\t"<<"after_loc loc: "<<size_t(after_loc)<<std::endl;
+			std::cerr<<"\t"<<"diff_loc loc: "<<size_t(diff_loc)<<std::endl;
+			std::cerr<<"\t"<<"write buf size: "<<bb.size()<<std::endl;
+		}
+		if(!ifile.good())
+		{
+			std::cerr<<"[storage::write] index file state is not good."<<std::endl;
+			std::cerr<<"\t"<<fname<<std::endl;
+			std::cerr<<"\t"<<"std::fstream::failbit: "<<ifile.fail()<<std::endl;
+			std::cerr<<"\t"<<"std::fstream::eofbit: "<<ifile.eof()<<std::endl;
+			std::cerr<<"\t"<<"std::fstream::badbit: "<<ifile.bad()<<std::endl;
+		}
 		/*
 		ifile.write(
 			reinterpret_cast<char *>(&data_loc),
