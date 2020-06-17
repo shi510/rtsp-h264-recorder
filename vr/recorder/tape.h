@@ -8,6 +8,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <functional>
 
 namespace vr
 {
@@ -139,7 +140,9 @@ class tape_pool
 	std::map<std::string, std::shared_ptr<vr::tape>> __tps;
 
 public:
-	tape_pool(std::string root_dir, vr::tape::option glob_opt);
+	typedef std::function<vr::tape::option(std::string)> opt_calback_fn;
+
+	tape_pool(std::string root_dir, opt_calback_fn fn);
 
 	std::shared_ptr<vr::tape> create(std::string tp_key, vr::tape::option opt);
 

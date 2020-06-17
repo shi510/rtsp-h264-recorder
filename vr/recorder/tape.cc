@@ -449,7 +449,7 @@ bool tape::iterator::operator!=(const this_type& it) const
 	return __iter != it.__iter;
 }
 
-tape_pool::tape_pool(std::string root_dir, vr::tape::option glob_opt)
+tape_pool::tape_pool(std::string root_dir, tape_pool::opt_calback_fn fn)
 {
 	using namespace std::filesystem;
 	__root_dir = root_dir;
@@ -457,11 +457,11 @@ tape_pool::tape_pool(std::string root_dir, vr::tape::option glob_opt)
 	{
 		if(p.is_directory())
 		{
-			auto fname = p.path().filename().string();
-			std::cout<<fname<<std::endl;
+			auto tape_key = p.path().filename().string();
+			std::cout<<tape_key<<std::endl;
 			auto tp = std::make_shared<vr::tape>();
-			tp->open(p.path().string(), glob_opt);
-			__tps[fname] = tp;
+			tp->open(p.path().string(), fn(tape_key));
+			__tps[tape_key] = tp;
 		}
 	}
 }
