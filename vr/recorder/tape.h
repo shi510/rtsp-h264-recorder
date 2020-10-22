@@ -43,7 +43,7 @@ public:
 	
 	option get_option() const;
 
-	bool write(std::vector<storage::frame_info> gop, milliseconds at);
+	bool write(std::vector<storage::frame_info> gop);
 
 	// get all recording timelines.
 	std::vector<std::pair<uint64_t, uint64_t>> timeline();
@@ -76,11 +76,6 @@ private:
 	void restrict_option();
 
 private:
-	struct write_chunk
-	{
-		std::vector<storage::frame_info> gop;
-		milliseconds at;
-	};
 
 	/*
 	* Key of the map is 
@@ -101,7 +96,7 @@ private:
 	// folder path of this tape.
 	std::string _root;
 	// write buffer.
-	std::queue<write_chunk> __wbuf;
+	std::queue<std::vector<storage::frame_info>> __wbuf;
 	// thread writer to storage.
 	std::thread __write_worker;
 	// mutex for thread writer.

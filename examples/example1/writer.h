@@ -10,16 +10,6 @@
 
 class writer
 {
-	using group_of_pic = std::vector<vr::storage::frame_info>;
-
-	struct chunk
-	{
-		// gop start tiem (utc milliseconds)
-		std::chrono::milliseconds time;
-		// number of frames at time.
-		group_of_pic gop;
-	};
-
 	std::shared_ptr<vr::tape> _tp;
 	std::shared_ptr<vr::cam_reader> _cr;
 	std::thread _worker;
@@ -37,8 +27,6 @@ public:
 	void set_tape(std::shared_ptr<vr::tape> tp);
 
 	void set_cam_reader(std::shared_ptr<vr::cam_reader> cr);
-
-	void write_gop(const group_of_pic gop, const std::time_t time);
 
 	void set_delay(int sec);
 

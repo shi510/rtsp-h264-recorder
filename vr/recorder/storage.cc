@@ -200,13 +200,16 @@ bool storage::read_index_file(std::string file)
 }
 
 
-bool storage::write(const std::vector<frame_info>& data, const milliseconds at)
+bool storage::write(const std::vector<frame_info>& data)
 {
 	using namespace std::chrono;
 	constexpr int MINUTE = 60 * 1000; // as milliseconds
 	size_t num_frames = data.size();
 	_TsKey cur_sys_time =
 		duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+	if(num_frames < 1)
+		return false;
+	auto at = data[0].msec;
 	if(!idxes.empty() && __last_wtime != 0)
 	{
 		_TsKey last_ftime = std::prev(idxes.end())->second.ts;
@@ -240,8 +243,6 @@ bool storage::write(const std::vector<frame_info>& data, const milliseconds at)
 		{
 			if(reopen_count > 2)
 			{
-				//std::cout<<fname + ".data"<<std::endl;
-				//std::cout<<'\t'<<"file reopened : "<<reopen_count<<std::endl;
 				return false;
 			}
 			if(!dfile.is_open())
@@ -268,9 +269,6 @@ bool storage::write(const std::vector<frame_info>& data, const milliseconds at)
 				{
 					return false;
 				}
-				//std::cerr<<"[VR] storage::write - reopen storage: "<<fname<<std::endl;
-				//std::cerr<<"your frame time    : "<<at.count()<<" ";
-				//std::cerr<<utility::to_string(at.count())<<std::endl;
 			}
 			dfile.seekp(0, std::ios::end);
 			data_loc = static_cast<_LocKey>(dfile.tellp());
@@ -307,25 +305,6 @@ bool storage::write(const std::vector<frame_info>& data, const milliseconds at)
 			bb<<frame.data;
 		}
 		dfile.write(bb.data(), bb.size());
-		/*
-		dfile.write(
-			reinterpret_cast<char *>(&num_frames),
-			sizeof(size_t));
-		for(auto frame : data)
-		{
-			_LocKey len = frame.data.size();
-			uint64_t tl = frame.msec.count();
-			dfile.write(
-				reinterpret_cast<char *>(&len),
-				sizeof(_LocKey));
-			dfile.write(
-				reinterpret_cast<char *>(&tl),
-				sizeof(uint64_t));
-			dfile.write(
-				reinterpret_cast<char *>(frame.data.data()),
-				len);
-		}
-		*/
 	}
 	// write group of picture to data file.
 	{
@@ -389,14 +368,6 @@ bool storage::write(const std::vector<frame_info>& data, const milliseconds at)
 			std::cerr<<"\t"<<"std::fstream::eofbit: "<<ifile.eof()<<std::endl;
 			std::cerr<<"\t"<<"std::fstream::badbit: "<<ifile.bad()<<std::endl;
 		}
-		/*
-		ifile.write(
-			reinterpret_cast<char *>(&data_loc),
-			sizeof(_LocKey));
-		ifile.write(
-			reinterpret_cast<char *>(&ts),
-			sizeof(_TsKey));
-		*/
 		idxes[idx_key] = index_info{data_loc, at.count()};
 	}
 	return true;

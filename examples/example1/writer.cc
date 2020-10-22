@@ -21,7 +21,7 @@ bool writer::start()
 	_worker = std::thread(
 		[this]()
 		{
-			group_of_pic gop;
+			std::vector<vr::storage::frame_info> gop;
 			_cr->play();
 			while(true)
 			{
@@ -31,7 +31,7 @@ bool writer::start()
 					system_clock::now().time_since_epoch());
 				if(fr.extra_data && gop.size() > 0)
 				{
-					_tp->write(gop, ms_now);
+					_tp->write(gop);
 					gop = group_of_pic();
 					if(_is_delay)
 					{

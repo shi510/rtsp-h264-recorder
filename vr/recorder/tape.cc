@@ -57,7 +57,7 @@ bool tape::open(const std::string dir, option opt)
 		{
 			while(true)
 			{
-				write_chunk chk;
+				std::vector<storage::frame_info> gop;
 				{
 					std::unique_lock<std::mutex> lock(__wmtx);
 					__wcv.wait(lock,
@@ -66,10 +66,10 @@ bool tape::open(const std::string dir, option opt)
 					{
 						break;
 					}
-					chk = std::move(__wbuf.front());
+					gop = std::move(__wbuf.front());
 					__wbuf.pop();
 				}
-				auto sec = time_t(chk.at.count() / 1000);
+				auto sec = time_t(gop[0].msec.count() / 1000);
 				std::shared_ptr<storage> strg = find_storage(sec);
 				if(!strg)
 				{
@@ -94,7 +94,7 @@ bool tape::open(const std::string dir, option opt)
 					}
 					else
 					{
-						strg->write(chk.gop, chk.at);
+						strg->write(gop);
 					}
 				}
 			}
@@ -145,10 +145,10 @@ tape::option tape::get_option() const
 	return __opt;
 }
 
-bool tape::write(std::vector<storage::frame_info> gop, milliseconds at)
+bool tape::write(std::vector<storage::frame_info> gop)
 {
 	std::unique_lock<std::mutex> lock(__wmtx);
-	__wbuf.push({gop, at});
+	__wbuf.push(gop);
 	__wcv.notify_one();
 	return true;
 }
