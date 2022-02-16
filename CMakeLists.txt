@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.9)
 
 project(video_recorder CXX C)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
