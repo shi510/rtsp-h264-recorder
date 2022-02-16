@@ -23,6 +23,8 @@ class storage
 		_LocKey loc;
 		// time stamp for each group of picture.
 		_TsKey ts;
+        // time stamp of last frame of gop.
+        _TsKey ts_end;
 	};
 
 	// file name excluding extension.
@@ -89,7 +91,7 @@ private:
 
 	bool read_index_file(std::string file);
 
-	void update_timeline(milliseconds at);
+    void update_timeline(milliseconds at, milliseconds end);
 
 	bool repair_if_corrupt(std::string file_name);
 };

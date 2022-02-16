@@ -175,12 +175,13 @@ bool storage::read_index_file(std::string file)
 		std::cout<<"file_size % (sizeof(_LocKey) + sizeof(_TsKey)) : ";
 		std::cout<<file_size % (sizeof(_LocKey) + sizeof(_TsKey))<<std::endl;
 	}
-	for(int n = 0; n < file_size; n+=sizeof(int64_t)*2)
+	for(int n = 0; n < file_size; n+=sizeof(int64_t)*3)
 	{
 		auto ptr = reinterpret_cast<int64_t *>(fdata.data() + n);
 		index_info ii;
 		ii.loc = *(ptr);
 		ii.ts = *(ptr + 1);
+        ii.ts_end = *(ptr + 2);
 		if(ii.ts < last_ts)
 		{
 			//std::cerr<<"[VR] storage::read_index_file() - ii.ts < last_ts"<<std::endl;
@@ -190,11 +191,11 @@ bool storage::read_index_file(std::string file)
 			//std::cerr<<utility::to_string(last_ts)<<std::endl;
 			continue;
 		}
-		last_ts = ii.ts;
+		last_ts = ii.ts_end;
 		_LocKey idx_key = make_index_key(ii.ts / 1000);
 		idxes[idx_key] = ii;
-		update_timeline(std::chrono::milliseconds(ii.ts));
-		__last_wtime = ii.ts;
+        update_timeline(std::chrono::milliseconds(ii.ts), std::chrono::milliseconds(ii.ts_end));
+		__last_wtime = ii.ts_end;
 	}
 	return true;
 }
@@ -210,6 +211,7 @@ bool storage::write(const std::vector<frame_info>& data)
 	if(num_frames < 1)
 		return false;
 	auto at = data[0].msec;
+    auto end = data.back().msec;
 	if(!idxes.empty() && __last_wtime != 0)
 	{
 		_TsKey last_ftime = std::prev(idxes.end())->second.ts;
@@ -310,8 +312,9 @@ bool storage::write(const std::vector<frame_info>& data)
 	{
 		std::unique_lock<std::mutex> lock(imtx);
 		_TsKey ts = at.count();
+        _TsKey ts_end = end.count();
 		_IdxKey idx_key = make_index_key(ts / 1000);
-		update_timeline(at);
+        update_timeline(at, end);
 		if(!ifile.is_open() || !ifile.good())
 		{
 			if(ifile.is_open()) ifile.close();
@@ -349,6 +352,7 @@ bool storage::write(const std::vector<frame_info>& data)
 		utility::byte_buffer bb;
 		bb<<data_loc;
 		bb<<ts;
+        bb<<ts_end;
 		ifile.write(bb.data(), bb.size());
 		auto after_loc = ifile.tellp();
 		auto diff_loc = size_t(after_loc - before_loc);
@@ -368,7 +372,7 @@ bool storage::write(const std::vector<frame_info>& data)
 			std::cerr<<"\t"<<"std::fstream::eofbit: "<<ifile.eof()<<std::endl;
 			std::cerr<<"\t"<<"std::fstream::badbit: "<<ifile.bad()<<std::endl;
 		}
-		idxes[idx_key] = index_info{data_loc, at.count()};
+		idxes[idx_key] = index_info{data_loc, at.count(), end.count()};
 	}
 	return true;
 }
@@ -384,10 +388,11 @@ storage::_IdxKey storage::make_index_key(const std::time_t time) const
 	return t.tm_min * 1e2 + t.tm_sec;
 }
 
-void storage::update_timeline(milliseconds at)
+void storage::update_timeline(milliseconds at, milliseconds end)
 {
 	constexpr uint64_t tolerance = 1500; // ms
 	uint64_t at_count = at.count();
+    uint64_t end_count = end.count();
 	if(__timeline.empty())
 	{
 		__timeline[at_count] = at_count;
@@ -397,11 +402,11 @@ void storage::update_timeline(milliseconds at)
 	auto diff = at_count - it->second;
 	if(diff >= tolerance)
 	{
-		__timeline[at_count] = at_count;
+		__timeline[at_count] = end_count;
 	}
 	else
 	{
-		it->second = at_count;
+		it->second = end_count;
 	}
 }
 
