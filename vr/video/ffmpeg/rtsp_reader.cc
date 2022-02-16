@@ -99,7 +99,7 @@ int rtsp_reader::get_video_index()
 	int idx = -1;
 	for(int i = 0; i < this->_rtsp_ctx->nb_streams; i++)
 	{
-		auto codec_type = this->_rtsp_ctx->streams[i]->codec->codec_type;
+		auto codec_type = this->_rtsp_ctx->streams[i]->codecpar->codec_type;
 		if(codec_type == AVMEDIA_TYPE_VIDEO)
 		{
 			idx = i;

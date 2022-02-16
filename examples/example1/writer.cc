@@ -13,6 +13,7 @@ writer::~writer()
 
 bool writer::start()
 {
+	using group_of_pic = std::vector<vr::storage::frame_info>;
 	using namespace std::chrono;
 	if(!_tp || !_cr)
 	{
