@@ -288,7 +288,7 @@ bool storage::write(const std::vector<frame_info>& data)
 			}
 			else if(dfile.rdstate() & std::fstream::badbit)
 			{
-				std::cout<<"std::fstream::eofbit: "<<fname<<std::endl;
+				std::cout<<"std::fstream::badbit: "<<fname<<std::endl;
 				dfile.close();
 				reopen_count++;
 				continue;

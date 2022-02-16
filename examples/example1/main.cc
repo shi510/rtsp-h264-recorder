@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
 	
 	if(!streamer->open(std::atoi(argv[2])))
 	{
-		std::cout<<"tape can not open."<<std::endl;
+		std::cout<<"streamer can not open."<<std::endl;
 		streamer->close();
 		return 1;
 	}
