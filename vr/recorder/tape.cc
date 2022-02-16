@@ -44,7 +44,7 @@ bool tape::open(const std::string dir, option opt)
 		to_remove.insert(to_remove.end(),
 			old_files.begin(), old_files.end());
 	}
-	auto failed = utility::remove_files(to_remove);
+	auto failed = utility::remove_files(to_remove, dir);
 	if(!failed.empty())
 	{
 		std::cerr<<"[VR] fail to remove files below:"<<std::endl;
