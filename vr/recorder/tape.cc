@@ -18,6 +18,13 @@ tape::~tape()
 
 bool tape::open(const std::string dir, option opt)
 {
+    std::error_code ec;
+    std::filesystem::create_directories(
+        std::filesystem::path(dir).parent_path(), ec);
+    if(ec.value()) {
+        std::cout << "failed to create data directory" << std::endl;
+        exit(-1);
+    }
 	std::vector<std::string> to_remove;
 	_root = dir;
 	__opt = opt;
