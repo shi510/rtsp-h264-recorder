@@ -20,7 +20,7 @@ bool tape::open(const std::string dir, option opt)
 {
     std::error_code ec;
     std::filesystem::create_directories(
-        std::filesystem::path(dir).parent_path(), ec);
+        std::filesystem::path(dir), ec);
     if(ec.value()) {
         std::cout << "failed to create data directory" << std::endl;
         exit(-1);
