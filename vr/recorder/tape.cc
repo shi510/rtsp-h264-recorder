@@ -18,13 +18,6 @@ tape::~tape()
 
 bool tape::open(const std::string dir, option opt)
 {
-    std::error_code ec;
-    std::filesystem::create_directories(
-        std::filesystem::path(dir), ec);
-    if(ec.value()) {
-        std::cout << "failed to create data directory" << std::endl;
-        exit(-1);
-    }
 	std::vector<std::string> to_remove;
 	_root = dir;
 	__opt = opt;
@@ -458,6 +451,13 @@ bool tape::iterator::operator!=(const this_type& it) const
 
 tape_pool::tape_pool(std::string root_dir, tape_pool::opt_calback_fn fn)
 {
+    std::error_code ec;
+    std::filesystem::create_directories(
+        std::filesystem::path(root_dir), ec);
+    if(ec.value()) {
+        std::cout << "failed to create root directory" << std::endl;
+        exit(-1);
+    }
 	using namespace std::filesystem;
 	__root_dir = root_dir;
 	for(auto& p: directory_iterator(root_dir))
