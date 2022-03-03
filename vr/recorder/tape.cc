@@ -421,8 +421,8 @@ tape::iterator& tape::iterator::operator++()
 			// try get previous iterator.
 			// and get std::next again later.
 			// the latest index with the latest storage.
-			__iter = std::prev(__iter);
-			__idx_iter = --__iter->second->end();
+            __iter = __iter_end;
+            __idx_iter = std::prev(__iter)->second->end();
 		}
 	}
 	else{
