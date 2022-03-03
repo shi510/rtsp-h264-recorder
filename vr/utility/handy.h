@@ -57,7 +57,7 @@ T1 find_closest_key(const std::map<T1, T2> & data, T1 key)
 {
 	if(data.size() == 0)
 	{
-		throw std::out_of_range("Received empty map.");
+		return data.end()->first;
 	}
 	auto lower = data.lower_bound(key);
 
