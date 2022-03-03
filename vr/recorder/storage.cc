@@ -16,6 +16,7 @@ storage::storage(std::string file_name)
 		std::cerr<<"storage::storage - file name is empty."<<std::endl;
 		std::cerr<<"storage file name: "<<fname<<std::endl;
 		idxes.clear();
+        __timeline.clear();
 		return;
 	}
 	if(!std::filesystem::exists(fname + ".index")){
@@ -25,6 +26,7 @@ storage::storage(std::string file_name)
 	if(!repair_if_corrupt(fname))
 	{
 		idxes.clear();
+        __timeline.clear();
 		return;
 	}
 	*/
@@ -56,6 +58,7 @@ void storage::close()
 		}
 	}
 	idxes.clear();
+	__timeline.clear();
 }
 
 bool storage::remove()
@@ -160,6 +163,7 @@ bool storage::read_index_file(std::string file)
 		std::cerr<<"[VR] storage::read_index_file() - index_file.fail()"<<std::endl;
 		std::cerr<<'\t'<<"index file rdstate: "<<index_file.rdstate()<<std::endl;
 		idxes.clear();
+		__timeline.clear();
 		return false;
 	}
 	index_file.seekg(0, std::ios::end);
