@@ -393,7 +393,7 @@ void storage::update_timeline(milliseconds at, milliseconds end)
     uint64_t end_count = end.count();
 	if(__timeline.empty())
 	{
-		__timeline[at_count] = at_count;
+		__timeline[at_count] = end_count;
 		return;
 	}
 	auto it = std::prev(__timeline.end());
