@@ -171,9 +171,9 @@ bool storage::read_index_file(std::string file)
 	index_file.seekg(std::ios::beg);
 	index_file.read(fdata.data(), file_size);
 	index_file.close();
-	if(file_size % (sizeof(_LocKey) + sizeof(_TsKey)) != 0){
-		std::cout<<"file_size % (sizeof(_LocKey) + sizeof(_TsKey)) : ";
-		std::cout<<file_size % (sizeof(_LocKey) + sizeof(_TsKey))<<std::endl;
+	if(file_size % (sizeof(_LocKey) + sizeof(_TsKey) + sizeof(_TsKey)) != 0){
+		std::cout<<"file_size % (sizeof(_LocKey) + sizeof(_TsKey) + sizeof(_TsKey)) : ";
+		std::cout<<file_size % (sizeof(_LocKey) + sizeof(_TsKey) + sizeof(_TsKey))<<std::endl;
 	}
 	for(int n = 0; n < file_size; n+=sizeof(int64_t)*3)
 	{
@@ -432,7 +432,7 @@ bool storage::repair_if_corrupt(std::string file_name)
 	data_file.seekg(0, std::ios::end);
 	auto idx_fsize = int64_t(index_file.tellg());
 	auto data_fsize = int64_t(data_file.tellg());
-	auto idx_chunk_size = int64_t(sizeof(_LocKey) + sizeof(_TsKey));
+	auto idx_chunk_size = int64_t(sizeof(_LocKey) + sizeof(_TsKey) + sizeof(_TsKey));
 	auto remainder = idx_fsize % idx_chunk_size;
 
 	if(idx_fsize == 0)
@@ -446,13 +446,17 @@ bool storage::repair_if_corrupt(std::string file_name)
 	{
 		//check data corruption
 		_LocKey last_loc;
-		_TsKey last_ts;
+		_TsKey last_ts_start;
+		_TsKey last_ts_end;
 		index_file.seekg(idx_fsize - idx_chunk_size, std::ios::beg);
 		index_file.read(
 			reinterpret_cast<char *>(&last_loc),
 			sizeof(_LocKey));
 		index_file.read(
-			reinterpret_cast<char *>(&last_ts),
+			reinterpret_cast<char *>(&last_ts_start),
+			sizeof(_TsKey));
+		index_file.read(
+			reinterpret_cast<char *>(&last_ts_end),
 			sizeof(_TsKey));
 		if(last_loc < 0)
 		{
@@ -491,14 +495,18 @@ bool storage::repair_if_corrupt(std::string file_name)
 					sizeof(_LocKey));
 				data_file.read(
 					reinterpret_cast<char *>(&msec),
-					sizeof(uint64_t));
+					sizeof(_TsKey));
+                data_file.read(
+                    reinterpret_cast<char *>(&msec),
+                    sizeof(_TsKey));
 				data_file.seekp(len, std::ios::cur);
 				if(data_file.eof())
 				{
 					break;
 				}
 				total_len += sizeof(_LocKey);
-				total_len += sizeof(uint64_t);
+				total_len += sizeof(_TsKey);
+                total_len += sizeof(_TsKey);
 				total_len += len;
 			}
 			if(data_fsize != last_loc + total_len)
