@@ -9,7 +9,7 @@ namespace vr
 storage::storage(){}
 
 storage::storage(std::string file_name)
-	: fname(file_name), __last_wtime(0)
+	: fname(file_name)
 {
 	if(fname.empty() || fname == "")
 	{
@@ -195,7 +195,6 @@ bool storage::read_index_file(std::string file)
 		_LocKey idx_key = make_index_key(ii.ts / 1000);
 		idxes[idx_key] = ii;
         update_timeline(std::chrono::milliseconds(ii.ts), std::chrono::milliseconds(ii.ts_end));
-		__last_wtime = ii.ts_end;
 	}
 	return true;
 }
@@ -212,12 +211,10 @@ bool storage::write(const std::vector<frame_info>& data)
 		return false;
 	auto at = data[0].msec;
     auto end = data.back().msec;
-	if(!idxes.empty() && __last_wtime != 0)
+	if(!idxes.empty())
 	{
-		_TsKey last_ftime = std::prev(idxes.end())->second.ts;
-		auto diff_sys_time = cur_sys_time - __last_wtime;
-		auto diff_ftime = at.count() - last_ftime;
-		if(last_ftime > at.count() || diff_ftime > diff_sys_time + 5*MINUTE)
+		_TsKey last_ftime = std::prev(idxes.end())->second.ts_end;
+		if(last_ftime > at.count())
 		{
 			std::cerr<<"[VR] storage::write() - Fail to write a frame:"<<std::endl;
 			std::cerr<<"File               : "<<fname<<std::endl;
@@ -225,17 +222,14 @@ bool storage::write(const std::vector<frame_info>& data)
 			std::cerr<<utility::to_string(at.count())<<std::endl;
 			std::cerr<<"recorded frame time: "<<last_ftime<<" ";
 			std::cerr<<utility::to_string(last_ftime)<<std::endl;
-			std::cerr<<"diff above         : "<<diff_ftime<<std::endl;
 
 			std::cerr<<"current system time: "<<cur_sys_time<<" ";
 			std::cerr<<utility::to_string(cur_sys_time)<<std::endl;
 			std::cerr<<"last system time   : "<<__last_wtime<<" ";
 			std::cerr<<utility::to_string(__last_wtime)<<std::endl;
-			std::cerr<<"diff above         : "<<diff_sys_time<<std::endl;
 			return false;
 		}
 	}
-	__last_wtime = cur_sys_time;
 	
 	_LocKey data_loc;
 	{
