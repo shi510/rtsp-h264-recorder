@@ -571,7 +571,8 @@ std::vector<storage::frame_info> storage::reader::operator()(index_info ii)
 		return data;
 	}
 	size_t num_frames;
-	dfile->seekg(std::ios::beg + ii.loc);
+	dfile->seekg(ii.loc);
+    auto cur_pos = static_cast<long>(dfile->tellg());
 	dfile->read(
 		reinterpret_cast<char *>(&num_frames),
 		sizeof(size_t)
@@ -597,7 +598,7 @@ std::vector<storage::frame_info> storage::reader::operator()(index_info ii)
 			reinterpret_cast<char *>(&tl),
 			sizeof(uint64_t)
 		);
-		if(len <= 0 || len >= dfile_size){
+		if(len > (dfile_size - cur_pos)){
 			return std::vector<frame_info>();
 		}
 		fr.resize(len);
