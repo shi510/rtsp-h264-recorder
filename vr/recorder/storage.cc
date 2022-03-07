@@ -235,16 +235,14 @@ bool storage::write(const std::vector<frame_info>& data)
         dfile.seekp(0, std::ios::end);
         data_loc = static_cast<_LocKey>(dfile.tellp());
         
-        utility::byte_buffer bb;
-        bb<<num_frames;
+        dfile.write((char *)&num_frames, sizeof(num_frames));
         for(auto& frame : data){
             _LocKey len = frame.data.size();
             uint64_t tl = frame.msec.count();
-            bb<<len;
-            bb<<tl;
-            bb<<frame.data;
+            dfile.write((char *)&len, sizeof(len));
+            dfile.write((char *)&tl, sizeof(tl));
+            dfile.write((char *)frame.data.data(), frame.data.size());
         }
-        dfile.write(bb.data(), bb.size());
         dfile.close();
     }
     // write group of picture to data file.
@@ -271,11 +269,9 @@ bool storage::write(const std::vector<frame_info>& data)
         ifile.open(ifile_name, mode);
         ifile.seekp(0, std::ios::end);
         auto before_loc = ifile.tellp();
-        utility::byte_buffer bb;
-        bb<<data_loc;
-        bb<<ts;
-        bb<<ts_end;
-        ifile.write(bb.data(), bb.size());
+        ifile.write((char *)&data_loc, sizeof(data_loc));
+        ifile.write((char *)&ts, sizeof(ts));
+        ifile.write((char *)&ts_end, sizeof(ts_end));
         ifile.close();
     }
     return true;
