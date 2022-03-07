@@ -43,20 +43,6 @@ storage::~storage()
 
 void storage::close()
 {
-	{
-		std::unique_lock<std::mutex> lock(dmtx);
-		if(dfile.is_open())
-		{
-			dfile.close();
-		}
-	}
-	{
-		std::unique_lock<std::mutex> lock(imtx);
-		if(ifile.is_open())
-		{
-			ifile.close();
-		}
-	}
 	idxes.clear();
 	__timeline.clear();
 }
@@ -122,7 +108,6 @@ storage::iterator storage::find(std::time_t at)
 		return end();
 	}
 	rd.dfname = fname + ".data";
-	rd.dfile = &dfile;
 	rd.dmtx = &dmtx;
 	it.__iter = found;
 	it.__rd = rd;
@@ -134,7 +119,6 @@ storage::iterator storage::begin()
 	iterator it;
 	reader rd;
 	rd.dfname = fname + ".data";
-	rd.dfile = &dfile;
 	rd.dmtx = &dmtx;
 	it.__iter = idxes.begin();
 	it.__rd = rd;
@@ -146,7 +130,6 @@ storage::iterator storage::end()
 	iterator it;
 	reader rd;
 	rd.dfname = fname + ".data";
-	rd.dfile = &dfile;
 	rd.dmtx = &dmtx;
 	it.__iter = idxes.end();
 	it.__rd = rd;
@@ -207,10 +190,7 @@ bool storage::read_index_file(std::string file)
 bool storage::write(const std::vector<frame_info>& data)
 {
 	using namespace std::chrono;
-	constexpr int MINUTE = 60 * 1000; // as milliseconds
 	size_t num_frames = data.size();
-	_TsKey cur_sys_time =
-		duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 	if(num_frames < 1)
 		return false;
 	auto at = data[0].msec;
@@ -226,152 +206,78 @@ bool storage::write(const std::vector<frame_info>& data)
 			std::cerr<<utility::to_string(at.count())<<std::endl;
 			std::cerr<<"recorded frame time: "<<last_ftime<<" ";
 			std::cerr<<utility::to_string(last_ftime)<<std::endl;
-
-			std::cerr<<"current system time: "<<cur_sys_time<<" ";
-			std::cerr<<utility::to_string(cur_sys_time)<<std::endl;
-			std::cerr<<"last system time   : "<<__last_wtime<<" ";
-			std::cerr<<utility::to_string(__last_wtime)<<std::endl;
 			return false;
 		}
 	}
 	
-	_LocKey data_loc;
-	{
-		std::unique_lock<std::mutex> lock(dmtx);
-		int reopen_count = 0;
-		while(true)
-		{
-			if(reopen_count > 2)
-			{
-				return false;
-			}
-			if(!dfile.is_open())
-			{
-				std::string dfile_name = fname + ".data";
-				std::ios::openmode mode = std::ios::in | std::ios::out;
-				mode |= std::ios::binary | std::ios::app;
-				std::error_code ec;
-				std::filesystem::create_directories(
-					std::filesystem::path(dfile_name).parent_path(), ec);
-				if(ec.value())
-				{
-					time_t t = at.count() / 1000;
-					std::cout<<"storage::write - fail to create directories"<<std::endl;
-					std::cout<<'\t'<<dfile_name<<std::endl;
-					std::cout<<'\t'<<std::filesystem::path(dfile_name).parent_path()<<std::endl;
-					std::cout<<'\t'<<ec.message()<<std::endl;
-					std::cout<<asctime(gmtime(&t));
-					return false;
-				}
-				
-				dfile.open(dfile_name, mode);
-				if(!dfile.is_open())
-				{
-					return false;
-				}
-			}
-			dfile.seekp(0, std::ios::end);
-			data_loc = static_cast<_LocKey>(dfile.tellp());
-			if(dfile.rdstate() & std::fstream::failbit)
-			{
-				std::cout<<"std::fstream::failbit: "<<fname<<std::endl;
-				dfile.close();
-				reopen_count++;
-				continue;
-			}
-			else if(dfile.rdstate() & std::fstream::eofbit)
-			{
-				std::cout<<"std::fstream::eofbit: "<<fname<<std::endl;
-				dfile.close();
-				reopen_count++;
-				continue;
-			}
-			else if(dfile.rdstate() & std::fstream::badbit)
-			{
-				std::cout<<"std::fstream::badbit: "<<fname<<std::endl;
-				dfile.close();
-				reopen_count++;
-				continue;
-			}
-			break;
-		}
-		utility::byte_buffer bb;
-		bb<<num_frames;
-		for(auto& frame : data){
-			_LocKey len = frame.data.size();
-			uint64_t tl = frame.msec.count();
-			bb<<len;
-			bb<<tl;
-			bb<<frame.data;
-		}
-		dfile.write(bb.data(), bb.size());
-	}
+    _LocKey data_loc;
+    {
+        std::unique_lock<std::mutex> lock(dmtx);
+        std::string dfile_name = fname + ".data";
+        std::ios::openmode mode = std::ios::in | std::ios::out;
+        mode |= std::ios::binary | std::ios::app;
+        std::error_code ec;
+        std::filesystem::create_directories(
+            std::filesystem::path(dfile_name).parent_path(), ec);
+        if(ec.value())
+        {
+            time_t t = at.count() / 1000;
+            std::cout<<"storage::write - fail to create directories"<<std::endl;
+            return false;
+        }
+        
+        std::fstream dfile(dfile_name, mode);
+        if(!dfile.is_open())
+        {
+            return false;
+        }
+        
+        dfile.seekp(0, std::ios::end);
+        data_loc = static_cast<_LocKey>(dfile.tellp());
+        
+        utility::byte_buffer bb;
+        bb<<num_frames;
+        for(auto& frame : data){
+            _LocKey len = frame.data.size();
+            uint64_t tl = frame.msec.count();
+            bb<<len;
+            bb<<tl;
+            bb<<frame.data;
+        }
+        dfile.write(bb.data(), bb.size());
+        dfile.close();
+    }
 	// write group of picture to data file.
-	{
-		std::unique_lock<std::mutex> lock(imtx);
-		_TsKey ts = at.count();
+    {
+        std::unique_lock<std::mutex> lock(imtx);
+        std::fstream ifile;
+        _TsKey ts = at.count();
         _TsKey ts_end = end.count();
 		_IdxKey idx_key = make_index_key(ts / 1000);
         update_timeline(at, end);
-		if(!ifile.is_open() || !ifile.good())
-		{
-			if(ifile.is_open()) ifile.close();
-			std::string ifile_name = fname + ".index";
-			std::ios::openmode mode = std::ios::in | std::ios::out;
-			mode |= std::ios::binary | std::ios::app;
-			std::error_code ec;
-			std::filesystem::create_directories(
-				std::filesystem::path(ifile_name).parent_path(), ec);
-			if(ec.value())
-			{
-				time_t t = at.count() / 1000;
-				std::cout<<"storage::write - fail to create directories"<<std::endl;
-				std::cout<<'\t'<<ifile_name<<std::endl;
-				std::cout<<'\t'<<std::filesystem::path(ifile_name).parent_path()<<std::endl;
-				std::cout<<'\t'<<ec.message()<<std::endl;
-				std::cout<<'\t'<<asctime(gmtime(&t));
-				return false;
-			}
-			ifile.open(ifile_name, mode);
-			if(!ifile.is_open() || !ifile.good())
-			{
-				if(ifile.is_open()) ifile.close();
-				std::cerr<<"[storage::write] !ifile.is_open() || !ifile.good()"<<std::endl;
-				std::cerr<<"\t"<<fname<<std::endl;
-				std::cerr<<"\t"<<"failbit: "<<ifile.fail()<<std::endl;
-				std::cerr<<"\t"<<"eofbit: "<<ifile.eof()<<std::endl;
-				std::cerr<<"\t"<<"badbit: "<<ifile.bad()<<std::endl;
-				std::cerr<<"\t"<<"is_open: "<<ifile.is_open()<<std::endl;
-				return false;
-			}
-		}
-		ifile.seekp(0, std::ios::end);
-		auto before_loc = ifile.tellp();
-		utility::byte_buffer bb;
-		bb<<data_loc;
-		bb<<ts;
+        
+        std::string ifile_name = fname + ".index";
+        std::ios::openmode mode = std::ios::in | std::ios::out;
+        mode |= std::ios::binary | std::ios::app;
+        std::error_code ec;
+        std::filesystem::create_directories(
+            std::filesystem::path(ifile_name).parent_path(), ec);
+        if(ec.value())
+        {
+            time_t t = at.count() / 1000;
+            std::cout<<"storage::write - fail to create directories"<<std::endl;
+            return false;
+        }
+        ifile.open(ifile_name, mode);
+        ifile.seekp(0, std::ios::end);
+        auto before_loc = ifile.tellp();
+        utility::byte_buffer bb;
+        bb<<data_loc;
+        bb<<ts;
         bb<<ts_end;
-		ifile.write(bb.data(), bb.size());
-		auto after_loc = ifile.tellp();
-		auto diff_loc = size_t(after_loc - before_loc);
-		if(diff_loc != bb.size()){
-			std::cerr<<"[storage::write] file size is not changed after writing"<<std::endl;
-			std::cerr<<"\t"<<fname<<std::endl;
-			std::cerr<<"\t"<<"before loc: "<<size_t(before_loc)<<std::endl;
-			std::cerr<<"\t"<<"after_loc loc: "<<size_t(after_loc)<<std::endl;
-			std::cerr<<"\t"<<"diff_loc loc: "<<size_t(diff_loc)<<std::endl;
-			std::cerr<<"\t"<<"write buf size: "<<bb.size()<<std::endl;
-		}
-		if(!ifile.good())
-		{
-			std::cerr<<"[storage::write] index file state is not good."<<std::endl;
-			std::cerr<<"\t"<<fname<<std::endl;
-			std::cerr<<"\t"<<"std::fstream::failbit: "<<ifile.fail()<<std::endl;
-			std::cerr<<"\t"<<"std::fstream::eofbit: "<<ifile.eof()<<std::endl;
-			std::cerr<<"\t"<<"std::fstream::badbit: "<<ifile.bad()<<std::endl;
-		}
-		idxes[idx_key] = index_info{data_loc, at.count(), end.count()};
-	}
+        ifile.write(bb.data(), bb.size());
+        ifile.close();
+    }
 	return true;
 }
 
@@ -544,57 +450,59 @@ std::vector<storage::frame_info> storage::reader::operator()(index_info ii)
 {
 	std::vector<frame_info> data;
 	std::unique_lock<std::mutex> lock(*dmtx);
-	if(!dfile->is_open())
-	{
-		std::ios::openmode mode = std::ios::in | 
-			std::ios::out | std::ios::binary | std::ios::app;
-		dfile->open(dfname, mode);
-		if(!dfile->is_open())
-		{
-			std::cerr<<"[storage.cc, reader::operator()] ";
-			std::cerr<<"Fail to open: "<<dfname<<std::endl;
-			return data;
-		}
-	}
-	dfile->seekg(0, std::ios::end);
-	auto dfile_size = static_cast<long>(dfile->tellg());
-	if(dfile_size <= ii.loc)
-	{
-		std::cerr<<"[storage.cc] dfile_size <= ii.loc"<<std::endl;
-		return data;
-	}
-	size_t num_frames;
-	dfile->seekg(ii.loc);
-    auto cur_pos = static_cast<long>(dfile->tellg());
-	dfile->read(
-		reinterpret_cast<char *>(&num_frames),
-		sizeof(size_t)
-	);
-	// read gop.
-	for(size_t n = 0; n < num_frames; ++n)
-	{
-		size_t len;
-		uint64_t tl;
-		std::vector<uint8_t> fr;
-		dfile->read(
-			reinterpret_cast<char *>(&len),
-			sizeof(size_t)
-		);
-		dfile->read(
-			reinterpret_cast<char *>(&tl),
-			sizeof(uint64_t)
-		);
-		if(len > (dfile_size - cur_pos)){
-			return std::vector<frame_info>();
-		}
-		fr.resize(len);
-		dfile->read(
-			reinterpret_cast<char *>(fr.data()),
-			len
-		);
-		data.push_back({fr, milliseconds(tl)});
-	}
-	return data;
+    
+    
+    std::ios::openmode mode = std::ios::in |
+        std::ios::out | std::ios::binary | std::ios::app;
+    std::fstream dfile(dfname, mode);
+    if(!dfile.is_open())
+    {
+        std::cerr<<"[storage.cc, reader::operator()] ";
+        std::cerr<<"Fail to open: "<<dfname<<std::endl;
+        return data;
+    }
+    
+    dfile.seekg(0, std::ios::end);
+    auto dfile_size = static_cast<long>(dfile.tellg());
+    if(dfile_size <= ii.loc)
+    {
+        std::cerr<<"[storage.cc] dfile_size <= ii.loc"<<std::endl;
+        return data;
+    }
+    size_t num_frames;
+    dfile.seekg(ii.loc);
+    auto cur_pos = static_cast<long>(dfile.tellg());
+    dfile.read(
+        reinterpret_cast<char *>(&num_frames),
+        sizeof(size_t)
+    );
+    // read gop.
+    for(size_t n = 0; n < num_frames; ++n)
+    {
+        size_t len;
+        uint64_t tl;
+        std::vector<uint8_t> fr;
+        dfile.read(
+            reinterpret_cast<char *>(&len),
+            sizeof(size_t)
+        );
+        dfile.read(
+            reinterpret_cast<char *>(&tl),
+            sizeof(uint64_t)
+        );
+        if(len > (dfile_size - cur_pos)){
+            return std::vector<frame_info>();
+        }
+        fr.resize(len);
+        dfile.read(
+            reinterpret_cast<char *>(fr.data()),
+            len
+        );
+        data.push_back({fr, milliseconds(tl)});
+    }
+    
+    dfile.close();
+    return data;
 }
 
 std::vector<storage::frame_info> storage::iterator::operator*()

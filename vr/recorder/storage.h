@@ -29,10 +29,6 @@ class storage
 
 	// file name excluding extension.
 	std::string fname;
-	// data file stream.
-	std::fstream dfile;
-	// index file stream.
-	std::fstream ifile;
 	// mutex for data file stream.
 	std::mutex dmtx;
 	// mutex for index file stream.
@@ -99,7 +95,6 @@ class storage::reader
 	friend class storage;
 
 	std::string dfname;
-	std::fstream* dfile;
 	std::mutex* dmtx;
 
 public:
