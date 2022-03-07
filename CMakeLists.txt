@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 option(BUILD_EXAMPLE "Build EXAMPLE (require ffmpeg)" OFF)
 
 if(UNIX)
-	option(BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
+    option(BUILD_SHARED_LIBS "Build Shared Libraries" OFF)
 endif()
 
 set(vr_include_dirs ${PROJECT_SOURCE_DIR})
@@ -17,12 +17,12 @@ include(cmake/dependencies.cmake)
 include(cmake/utils.cmake)
 
 if(MSVC)
-	msvc_multi_threaded_static_turn(ON)
+    msvc_multi_threaded_static_turn(ON)
 endif()
 
 set(LIB_TYPE STATIC)
 if(BUILD_SHARED_LIBS)
-	set(LIB_TYPE SHARED)
+    set(LIB_TYPE SHARED)
 endif()
 
 add_subdirectory(vr)

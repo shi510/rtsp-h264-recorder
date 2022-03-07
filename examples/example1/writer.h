@@ -10,26 +10,26 @@
 
 class writer
 {
-	std::shared_ptr<vr::tape> _tp;
-	std::shared_ptr<vr::cam_reader> _cr;
-	std::thread _worker;
-	bool _stop_working;
-	bool _is_delay;
-	int _delay_sec;
+    std::shared_ptr<vr::tape> _tp;
+    std::shared_ptr<vr::cam_reader> _cr;
+    std::thread _worker;
+    bool _stop_working;
+    bool _is_delay;
+    int _delay_sec;
 
 public:
-	writer();
+    writer();
 
-	~writer();
+    ~writer();
 
-	bool start();
+    bool start();
 
-	void set_tape(std::shared_ptr<vr::tape> tp);
+    void set_tape(std::shared_ptr<vr::tape> tp);
 
-	void set_cam_reader(std::shared_ptr<vr::cam_reader> cr);
+    void set_cam_reader(std::shared_ptr<vr::cam_reader> cr);
 
-	void set_delay(int sec);
+    void set_delay(int sec);
 
-	void close();
+    void close();
 };
 

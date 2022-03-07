@@ -8,20 +8,21 @@ group_files("${files}")
 add_subdirectory(recorder)
 add_subdirectory(utility)
 if(BUILD_EXAMPLE)
-	add_subdirectory(streamer)
-	add_subdirectory(video)
+    add_subdirectory(streamer)
+    add_subdirectory(video)
 endif()
 
 include_directories(${vr_include_dirs})
 add_library(${the_library} ${LIB_TYPE} ${vr_source_files} ${vr_header_files})
 if(UNIX AND NOT APPLE)
-	# Unix but not apple specific library.
-	target_link_libraries(${the_library} ${vr_lib_deps} stdc++fs pthread)
+    # Unix but not apple specific library.
+    target_link_libraries(${the_library} ${vr_lib_deps} stdc++fs pthread)
 elseif(APPLE)
-	# apple specific library.
-	target_link_libraries(${the_library} ${vr_lib_deps} pthread)
+    # apple specific library.
+    target_link_libraries(${the_library} ${vr_lib_deps} pthread)
 else()
-	message("No support platform.")
+    message("No support platform.")
 endif()
 
 set_target_properties(${the_library} PROPERTIES FOLDER "vr_library")
+
