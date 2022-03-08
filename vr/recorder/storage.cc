@@ -136,6 +136,57 @@ storage::iterator storage::end()
     return it;
 }
 
+bool storage::read_data_file(std::string file)
+{
+    std::ios::openmode mode = std::ios::binary;
+    std::ifstream data_file(file + ".data", mode);
+    if(!data_file.is_open() || !data_file.good()){
+        std::cerr<<"[VR] storage::read_index_file_from_data() - open "<<file+".data failed"<<std::endl;
+        return false;
+    }
+    
+    _LocKey num_frames;
+    _LocKey frame_size;
+    _LocKey frame_msec;
+    
+    data_file.seekg(0, std::ios::end);
+    auto file_size = static_cast<int64_t>(data_file.tellg());
+    if(file_size <= 0){
+        return false;
+    }
+    
+    data_file.seekg(std::ios::beg);
+    while(data_file.peek() != EOF) {
+        index_info ii;
+        ii.loc = data_file.tellg();;
+
+        num_frames = 0;
+        if(!data_file.read((char *)&num_frames, sizeof(_LocKey))) {
+            std::cout <<"fail to read num_frames"<<std::endl;
+            return false;
+        }
+        for(int i = 0 ; i < num_frames ; i++) {
+            if(!data_file.read((char *)&frame_size, sizeof(_LocKey))) {
+                std::cout <<"fail to read frame_size"<<std::endl;
+                return false;
+            }
+            if(!data_file.read((char *)&frame_msec, sizeof(_LocKey))) {
+                std::cout <<"fail to read frame_msec"<<std::endl;
+                return false;
+            }
+            
+            if(i == 0) ii.ts = frame_msec;
+            if(i == num_frames-1) ii.ts_end = frame_msec;
+            data_file.seekg(frame_size, std::ios::cur);
+        }
+
+        _LocKey idx_key = make_index_key(ii.ts / 1000);
+        idxes[idx_key] = ii;
+        update_timeline(std::chrono::milliseconds(ii.ts), std::chrono::milliseconds(ii.ts_end));
+    }
+    return true;
+}
+
 bool storage::read_index_file(std::string file)
 {
     std::vector<char> fdata;

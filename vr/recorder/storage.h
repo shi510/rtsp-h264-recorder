@@ -84,6 +84,7 @@ private:
     _IdxKey make_index_key(const std::time_t time) const;
 
     bool read_index_file(std::string file);
+    bool read_data_file(std::string file);
 
     void update_timeline(milliseconds at, milliseconds end);
 
