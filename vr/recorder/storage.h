@@ -7,6 +7,9 @@
 
 namespace vr
 {
+constexpr static char __version = 0x01;
+constexpr static char __magic_code[2] = {'t', 'p'};
+
 using namespace std::chrono;
 
 class storage
@@ -21,6 +24,8 @@ class storage
     {
         // location of group of picture in data file.
         _LocKey loc;
+        // event info (first byte determines whether it is a motion frame.)
+        uint8_t events;
         // time stamp for each group of picture.
         _TsKey ts;
         // time stamp of last frame of gop.
@@ -43,13 +48,15 @@ class storage
     */
     std::map<_IdxKey, index_info> idxes;
 
-    std::map<uint64_t, uint64_t> __timeline;
+    std::vector<std::map<uint64_t, uint64_t>> __timeline;
 
 public:
+    constexpr static int __max_events = 8;
     struct frame_info
     {
         std::vector<uint8_t> data;
         milliseconds msec;
+        uint8_t events;
     };
 
     class iterator;
@@ -66,9 +73,9 @@ public:
     
     std::string name() const;
     
-    std::vector<std::pair<uint64_t, uint64_t>> timeline() const;
+    std::vector<std::pair<uint64_t, uint64_t>> timeline(int index) const;
 
-    std::pair<uint64_t, uint64_t> recent_timeline() const;
+    std::pair<uint64_t, uint64_t> recent_timeline(int index) const;
 
     bool empty() const;
 
@@ -86,7 +93,7 @@ private:
     bool read_index_file(std::string file);
     bool read_data_file(std::string file);
 
-    void update_timeline(milliseconds at, milliseconds end);
+    void update_timeline(uint8_t event, milliseconds at, milliseconds end);
 
     bool repair_if_corrupt(std::string file_name);
 };

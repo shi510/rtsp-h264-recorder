@@ -46,10 +46,10 @@ public:
     bool write(std::vector<storage::frame_info> gop);
 
     // get all recording timelines.
-    std::vector<std::pair<uint64_t, uint64_t>> timeline();
+    std::vector<std::pair<uint64_t, uint64_t>> timeline(int index);
 
     // get recent recording timelines.
-    std::shared_ptr<std::pair<uint64_t, uint64_t>> recent_timeline();
+    std::shared_ptr<std::pair<uint64_t, uint64_t>> recent_timeline(int index);
 
     iterator find(std::time_t at);
 

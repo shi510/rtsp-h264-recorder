@@ -19,6 +19,12 @@ storage::storage(std::string file_name)
         __timeline.clear();
         return;
     }
+    
+    for(int i = 0 ; i < __max_events+1 ; i++)
+    {
+        __timeline.push_back(std::map<uint64_t, uint64_t>());
+    }
+    
     if(!std::filesystem::exists(fname + ".index")){
         return;
     }
@@ -73,21 +79,28 @@ std::string storage::name() const
     return fname;
 }
 
-std::vector<std::pair<uint64_t, uint64_t>> storage::timeline() const
+std::vector<std::pair<uint64_t, uint64_t>> storage::timeline(int index) const
 {
     std::vector<std::pair<uint64_t, uint64_t>> tl;
 
-    for(auto it : __timeline)
+    if(__max_events <= index)
+    {
+        return tl;
+    }
+    
+    for(auto it : __timeline.at(index))
     {
         tl.push_back(std::make_pair(it.first, it.second));
     }
     return tl;
 }
 
-std::pair<uint64_t, uint64_t> storage::recent_timeline() const
+std::pair<uint64_t, uint64_t> storage::recent_timeline(int index) const
 {
-    if(__timeline.size() == 0) return std::make_pair(0, 0);
-    auto it = std::prev(__timeline.end());
+    if(__max_events <= index) return std::make_pair(0, 0);
+    auto timeline = __timeline.at(index);
+    if(timeline.size() == 0) return std::make_pair(0, 0);
+    auto it = std::prev(timeline.end());
     return std::make_pair(it->first, it->second);
 }
 
@@ -148,6 +161,7 @@ bool storage::read_data_file(std::string file)
     _LocKey num_frames;
     _LocKey frame_size;
     _LocKey frame_msec;
+    uint8_t events;
     
     data_file.seekg(0, std::ios::end);
     auto file_size = static_cast<int64_t>(data_file.tellg());
@@ -155,7 +169,24 @@ bool storage::read_data_file(std::string file)
         return false;
     }
     
+    constexpr int hdr_size = 3;
     data_file.seekg(std::ios::beg);
+    std::vector<char> hdr(hdr_size);
+    if(!data_file.read(hdr.data(), hdr_size)) {
+        return false;
+    }
+    
+    if(hdr.at(0) != __magic_code[0] || hdr.at(1) != __magic_code[1])
+    {
+        std::cout<<"invalid magic code: "<<file<<".index"<<std::endl;
+        return false;
+    }
+    
+    if(hdr.at(2) != __version) {
+        std::cout<<"not supported version code: "<<file<<".index, version: "<<(int)hdr.at(2)<<std::endl;
+        return false;
+    }
+        
     while(data_file.peek() != EOF) {
         index_info ii;
         ii.loc = data_file.tellg();;
@@ -170,6 +201,10 @@ bool storage::read_data_file(std::string file)
                 std::cout <<"fail to read frame_size"<<std::endl;
                 return false;
             }
+            if(!data_file.read((char *)&events, sizeof(uint8_t))) {
+                std::cout <<"fail to read events"<<std::endl;
+                return false;
+            }
             if(!data_file.read((char *)&frame_msec, sizeof(_LocKey))) {
                 std::cout <<"fail to read frame_msec"<<std::endl;
                 return false;
@@ -182,7 +217,7 @@ bool storage::read_data_file(std::string file)
 
         _LocKey idx_key = make_index_key(ii.ts / 1000);
         idxes[idx_key] = ii;
-        update_timeline(std::chrono::milliseconds(ii.ts), std::chrono::milliseconds(ii.ts_end));
+        update_timeline(events, std::chrono::milliseconds(ii.ts), std::chrono::milliseconds(ii.ts_end));
     }
     return true;
 }
@@ -205,35 +240,55 @@ bool storage::read_index_file(std::string file)
     if(file_size <= 0){
         return false;
     }
-    fdata.resize(file_size);
+    
+    constexpr int hdr_size = 3;
     index_file.seekg(std::ios::beg);
-    index_file.read(fdata.data(), file_size);
-    index_file.close();
-    if(file_size % (sizeof(_LocKey) + sizeof(_TsKey) + sizeof(_TsKey)) != 0){
-        std::cout<<"file_size % (sizeof(_LocKey) + sizeof(_TsKey) + sizeof(_TsKey)) : ";
-        std::cout<<file_size % (sizeof(_LocKey) + sizeof(_TsKey) + sizeof(_TsKey))<<std::endl;
+    std::vector<char> hdr(hdr_size);
+    if(!index_file.read(hdr.data(), hdr_size)) {
+        return false;
     }
-    for(int n = 0; n < file_size; n+=sizeof(int64_t)*3)
+    
+    if(hdr.at(0) != __magic_code[0] || hdr.at(1) != __magic_code[1])
     {
-        auto ptr = reinterpret_cast<int64_t *>(fdata.data() + n);
-        index_info ii;
-        ii.loc = *(ptr);
-        ii.ts = *(ptr + 1);
-        ii.ts_end = *(ptr + 2);
-        if(ii.ts < last_ts)
-        {
-            //std::cerr<<"[VR] storage::read_index_file() - ii.ts < last_ts"<<std::endl;
-            //std::cerr<<'\t'<<fname<<std::endl;
-            //std::cerr<<"\t Skip current GoP.";
-            //std::cerr<<utility::to_string(ii.ts)<<", ";
-            //std::cerr<<utility::to_string(last_ts)<<std::endl;
-            continue;
-        }
-        last_ts = ii.ts_end;
-        _LocKey idx_key = make_index_key(ii.ts / 1000);
-        idxes[idx_key] = ii;
-        update_timeline(std::chrono::milliseconds(ii.ts), std::chrono::milliseconds(ii.ts_end));
+        std::cout<<"invalid magic code: "<<file<<".index"<<std::endl;
+        return false;
     }
+    
+    if(hdr.at(2) == __version)
+    {
+        fdata.resize(file_size-hdr_size);
+        index_file.seekg(hdr_size, std::ios::beg);
+        index_file.read(fdata.data(), file_size);
+        index_file.close();
+        if((file_size-hdr_size) % (sizeof(_LocKey) + sizeof(uint8_t) + sizeof(_TsKey) + sizeof(_TsKey)) != 0){
+            std::cout<<"(file_size-hdr_size) % (sizeof(_LocKey) + sizeof(uint8_t) + sizeof(_TsKey) + sizeof(_TsKey)) : ";
+            std::cout<<(file_size-hdr_size) % (sizeof(_LocKey) + sizeof(uint8_t) + sizeof(_TsKey) + sizeof(_TsKey))<<std::endl;
+        }
+        for(int n = 0; n < file_size-hdr_size; n+=sizeof(int64_t)*3+sizeof(uint8_t))
+        {
+            auto ptr = reinterpret_cast<int64_t *>(fdata.data() + n);
+            index_info ii;
+            ii.loc = *reinterpret_cast<int64_t *>(fdata.data() + n);
+            ii.events = *reinterpret_cast<uint8_t *>(fdata.data() + n + sizeof(_LocKey));
+            ii.ts = *reinterpret_cast<int64_t *>(fdata.data() + n + sizeof(_LocKey) + sizeof(uint8_t));
+            ii.ts_end = *reinterpret_cast<int64_t *>(fdata.data() + n + sizeof(_LocKey)*2 + sizeof(uint8_t));
+                        
+            if(ii.ts < last_ts)
+            {
+                std::cerr<<"[VR] storage::read_index_file() - ii.ts < last_ts"<<std::endl;
+                continue;
+            }
+            last_ts = ii.ts_end;
+            _LocKey idx_key = make_index_key(ii.ts / 1000);
+            idxes[idx_key] = ii;
+            update_timeline(ii.events, std::chrono::milliseconds(ii.ts), std::chrono::milliseconds(ii.ts_end));
+        }
+    }
+    else
+    {
+        std::cout<<"not supported version code: "<<file<<".index, version: "<<(int)hdr.at(2)<<std::endl;
+    }
+    
     return true;
 }
 
@@ -261,6 +316,7 @@ bool storage::write(const std::vector<frame_info>& data)
         }
     }
     
+    uint8_t events = 0;
     _LocKey data_loc;
     {
         std::unique_lock<std::mutex> lock(dmtx);
@@ -286,13 +342,22 @@ bool storage::write(const std::vector<frame_info>& data)
         dfile.seekp(0, std::ios::end);
         data_loc = static_cast<_LocKey>(dfile.tellp());
         
+        // write header
+        if(data_loc == 0) {
+            dfile.write(__magic_code, sizeof(__magic_code));
+            dfile.write(&__version, sizeof(__version));
+            data_loc = static_cast<_LocKey>(dfile.tellp());
+        }
+        
         dfile.write((char *)&num_frames, sizeof(num_frames));
         for(auto& frame : data){
             _LocKey len = frame.data.size();
             uint64_t tl = frame.msec.count();
             dfile.write((char *)&len, sizeof(len));
+            dfile.write((char *)&frame.events, sizeof(uint8_t));
             dfile.write((char *)&tl, sizeof(tl));
             dfile.write((char *)frame.data.data(), frame.data.size());
+            events |= frame.events;
         }
         dfile.close();
     }
@@ -303,7 +368,7 @@ bool storage::write(const std::vector<frame_info>& data)
         _TsKey ts = at.count();
         _TsKey ts_end = end.count();
         _IdxKey idx_key = make_index_key(ts / 1000);
-        update_timeline(at, end);
+        update_timeline(events, at, end);
         
         std::string ifile_name = fname + ".index";
         std::ios::openmode mode = std::ios::in | std::ios::out;
@@ -320,10 +385,19 @@ bool storage::write(const std::vector<frame_info>& data)
         ifile.open(ifile_name, mode);
         ifile.seekp(0, std::ios::end);
         auto before_loc = ifile.tellp();
+        
+        // write header
+        if(before_loc == 0) {
+            ifile.write(__magic_code, sizeof(__magic_code));
+            ifile.write(&__version, sizeof(__version));
+        }
+        
         ifile.write((char *)&data_loc, sizeof(data_loc));
+        ifile.write((char *)&events, sizeof(uint8_t));
         ifile.write((char *)&ts, sizeof(ts));
         ifile.write((char *)&ts_end, sizeof(ts_end));
         ifile.close();
+        idxes[idx_key] = index_info{data_loc, events, ts, ts_end};
     }
     return true;
 }
@@ -339,25 +413,47 @@ storage::_IdxKey storage::make_index_key(const std::time_t time) const
     return t.tm_min * 1e2 + t.tm_sec;
 }
 
-void storage::update_timeline(milliseconds at, milliseconds end)
+void storage::update_timeline(uint8_t events, milliseconds at, milliseconds end)
 {
     constexpr uint64_t tolerance = 1500; // ms
     uint64_t at_count = at.count();
     uint64_t end_count = end.count();
-    if(__timeline.empty())
-    {
-        __timeline[at_count] = end_count;
-        return;
-    }
-    auto it = std::prev(__timeline.end());
-    auto diff = at_count - it->second;
-    if(diff >= tolerance)
-    {
-        __timeline[at_count] = end_count;
-    }
-    else
-    {
-        it->second = end_count;
+    uint64_t evt_end_count = (at+milliseconds(3500)).count();
+    
+    uint8_t mask = 1;
+    for(int index = 0 ; index < __max_events+1 ; index++) {
+        uint8_t p_mask = mask;
+        if(index != 0)
+        {
+            mask<<=1;
+            if(!(events & p_mask))
+            {
+                continue;
+            }
+        }
+        
+        if(__timeline.at(index).empty())
+        {
+            __timeline.at(index)[at_count] = (index==0) ? end_count : evt_end_count;
+            return;
+        }
+        auto it = std::prev(__timeline.at(index).end());
+        if(at_count > it->second)
+        {
+            auto diff = at_count - it->second;
+            if(diff >= tolerance)
+            {
+                __timeline.at(index)[at_count] = (index==0) ? end_count : evt_end_count;
+            }
+            else
+            {
+                it->second = (index==0) ? end_count : evt_end_count;
+            }
+        }
+        else
+        {
+            it->second = (index==0) ? end_count : evt_end_count;
+        }
     }
 }
 
@@ -526,11 +622,16 @@ std::vector<storage::frame_info> storage::reader::operator()(index_info ii)
     for(size_t n = 0; n < num_frames; ++n)
     {
         size_t len;
+        uint8_t events;
         uint64_t tl;
         std::vector<uint8_t> fr;
         dfile.read(
             reinterpret_cast<char *>(&len),
             sizeof(size_t)
+        );
+        dfile.read(
+            reinterpret_cast<char *>(&events),
+            sizeof(uint8_t)
         );
         dfile.read(
             reinterpret_cast<char *>(&tl),
@@ -544,7 +645,7 @@ std::vector<storage::frame_info> storage::reader::operator()(index_info ii)
             reinterpret_cast<char *>(fr.data()),
             len
         );
-        data.push_back({fr, milliseconds(tl)});
+        data.push_back({fr, milliseconds(tl), events});
     }
     
     dfile.close();

@@ -154,12 +154,12 @@ bool tape::write(std::vector<storage::frame_info> gop)
     return true;
 }
 
-std::vector<std::pair<uint64_t, uint64_t>> tape::timeline()
+std::vector<std::pair<uint64_t, uint64_t>> tape::timeline(int index)
 {
     std::vector<std::pair<uint64_t, uint64_t>> tls;
     for(auto it : strgs)
     {
-        auto cur_tl = it.second->timeline();
+        auto cur_tl = it.second->timeline(index);
         for(auto& tl : cur_tl)
         {
             tls.push_back(tl);
@@ -169,9 +169,9 @@ std::vector<std::pair<uint64_t, uint64_t>> tape::timeline()
     // return tls;
 }
 
-std::shared_ptr<std::pair<uint64_t, uint64_t>> tape::recent_timeline()
+std::shared_ptr<std::pair<uint64_t, uint64_t>> tape::recent_timeline(int index)
 {
-    auto tls = timeline();
+    auto tls = timeline(index);
     if(tls.size() == 0) return nullptr;
     auto tl = tls.rbegin();
     if(tl->second == 0) return nullptr;
